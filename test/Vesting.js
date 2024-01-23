@@ -35,6 +35,7 @@ describe("Vesting Contract", () => {
             var { vesting, dj } = await loadFixture(loadTest);
             
             let startTime = 1706745600
+            let endTime = 1709251199
             let tokenPrice = "0.04"
             let initialBalance = "8000000"
             let maxTokensPerInvestor = "400000"

@@ -21,6 +21,7 @@ contract Vesting is
 
     struct Phase {
         uint256 startTime;
+        uint256 endTime;
         uint256 tokenPrice;
         uint256 initialBalance;
         uint256 balance;
@@ -83,6 +84,7 @@ contract Vesting is
 
     function createPhase(
         uint256 _startTime,
+        uint256 _endTime,
         uint256 _tokenPrice,
         uint256 _initialBalance,
         uint256 _maxTokensPerInvestor
@@ -90,6 +92,7 @@ contract Vesting is
 
         Phase memory newPhase = Phase({
             startTime: _startTime,
+            endTime: _endTime,
             tokenPrice: _tokenPrice,
             initialBalance: _initialBalance,
             balance: _initialBalance,
@@ -107,14 +110,9 @@ contract Vesting is
         require(phases.length > 0, "No vesting phases available.");
         require(tokensSupported[_stableAddress], "Stable token not supported for purchase.");
 
-        uint256 time = block.timestamp;
+        // uint8 currentPhase = getCurrentPhase();
 
-
-
-
-
-
-
+        // Phase storage currentPhase = getCurrentPhase();
 
 
 
@@ -159,8 +157,21 @@ contract Vesting is
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {}
 
-    /**************************** MODIFIERS  ****************************/
+    /**************************** GETTERS  ****************************/
 
+    // function getCurrentPhase() public view returns (uint8) {
+    //     require(phases.length > 0, "No vesting phases available.");
+    //     // Verificamos que el tiempo actual se encuentre dentro de alguna fase
+    //     uint256 time = block.timestamp;
+    //     require()
+
+
+
+
+
+    // }
+
+    
 
     function getTokensSupportedList() public view returns(address[] memory) {
         return tokensSupportedList;
@@ -169,4 +180,9 @@ contract Vesting is
     function getPhases() public view returns(Phase[] memory) {
         return phases;
     }
+
+    /**************************** MODIFIERS  ****************************/
+
+
+    
 }
