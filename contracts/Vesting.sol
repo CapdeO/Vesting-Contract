@@ -172,8 +172,12 @@ contract Vesting is
         revert("No active vesting phase for the current time.");
     }
 
+    function getPhase(uint8 _phase) public view returns (Phase memory) {
+        require(phases.length > 0, "No vesting phases available.");
+        require(_phase < phases.length, "Invalid phase number.");
 
-    
+        return phases[_phase];
+    }
 
     function getTokensSupportedList() public view returns(address[] memory) {
         return tokensSupportedList;

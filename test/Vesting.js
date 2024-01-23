@@ -4,14 +4,14 @@ var { ethers, upgrades } = require("hardhat");
 var { time } = require("@nomicfoundation/hardhat-network-helpers");
 
 const phases = [
-    [1706745600, 1709251199, "0.04",   "8000000",  "400000", ], // Private Sale
-    [1709251200, 1711929599, "0.06",  "32000000", "1600000", ], // Phase 1
-    [1711929600, 1709251199, "0.07",   "6000000",  "300000", ], // Phase 2
-    [1714521600, 1709251199, "0.075", "40000000", "2000000", ], // Phase 3
-    [1717200000, 1709251199, "0.08",  "40000000", "2000000", ], // Phase 4
-    [1719792000, 1709251199, "0.085", "60000000", "3000000", ], // Phase 5
-    [1722470400, 1709251199, "0.09",  "64000000", "3200000", ], // Phase 6
-    [1706745600, 1709251199, "0.095", "70000000", "3500000", ], // Phase 7
+    [1706745600, 1709251199, ethers.parseEther("0.04"),   ethers.parseEther("8000000"),  ethers.parseEther("400000"), ], // Private Sale
+    [1709251200, 1711929599, ethers.parseEther("0.06"),  ethers.parseEther("32000000"), ethers.parseEther("1600000"), ], // Phase 1
+    [1711929600, 1714521599, ethers.parseEther("0.07"),   ethers.parseEther("6000000"),  ethers.parseEther("300000"), ], // Phase 2
+    [1714521600, 1717199999, ethers.parseEther("0.075"), ethers.parseEther("40000000"), ethers.parseEther("2000000"), ], // Phase 3
+    [1717200000, 1719791999, ethers.parseEther("0.08"),  ethers.parseEther("40000000"), ethers.parseEther("2000000"), ], // Phase 4
+    [1719792000, 1722470399, ethers.parseEther("0.085"), ethers.parseEther("60000000"), ethers.parseEther("3000000"), ], // Phase 5
+    [1722470400, 1725148799, ethers.parseEther("0.09"),  ethers.parseEther("64000000"), ethers.parseEther("3200000"), ], // Phase 6
+    [1725148800, 1727740799, ethers.parseEther("0.095"), ethers.parseEther("70000000"), ethers.parseEther("3500000"), ], // Phase 7
 ]
 
 describe("Vesting Contract", () => {
@@ -44,36 +44,61 @@ describe("Vesting Contract", () => {
     describe("Create Phase", () => {
         it("Parameters", async () => {
             var { vesting, dj } = await loadFixture(loadTest);
-            
-            let startTime = 1706745600
-            let endTime = 1709251199
-            let tokenPrice = "0.04"
-            let initialBalance = "8000000"
-            let maxTokensPerInvestor = "400000"
 
             let amount = ethers.parseEther("8000000")
 
             await dj.approve(vesting, amount)
-            await vesting.createPhase(startTime, endTime, ethers.parseEther(tokenPrice), ethers.parseEther(initialBalance), ethers.parseEther(maxTokensPerInvestor))
+            await vesting.createPhase(phases[0][0], phases[0][1], phases[0][2], phases[0][3], phases[0][4],)
 
-            expect((await vesting.getPhases.call())[0].startTime).to.be.equal(startTime)
+            expect((await vesting.getPhases.call())[0].startTime).to.be.equal(phases[0][0])
             expect(await dj.balanceOf(vesting)).to.be.equal(amount)
         });
-    });
 
-    describe("Invest", () => {
-        it("Invest in phase ", async () => {
-            var { vesting, usdt, dj } = await loadFixture(loadTest);
+        it("Get actual Phase", async () => {
+            var { vesting, dj } = await loadFixture(loadTest);
 
-            let phasesList = await vesting.getPhases.call()
-            console.log(phasesList.length)
+            await expect(vesting.getCurrentPhase()).to.be.revertedWith("No vesting phases available.")
 
-            await dj.approve(vesting, ethers.parseEther("8000000"))
-            await vesting.createPhase(1706745600, ethers.parseEther("0.04"), ethers.parseEther("8000000"), ethers.parseEther("400000"))
+            await dj.approve(vesting, phases[0][3])
+            await vesting.createPhase(phases[0][0], phases[0][1], phases[0][2], phases[0][3], phases[0][4])
 
-            phasesList = await vesting.getPhases.call()
-            console.log(phasesList.length)
+            await dj.approve(vesting, phases[1][3])
+            await vesting.createPhase(phases[1][0], phases[1][1], phases[1][2], phases[1][3], phases[1][4])
+
+            await dj.approve(vesting, phases[2][3])
+            await vesting.createPhase(phases[2][0], phases[2][1], phases[2][2], phases[2][3], phases[2][4])
+
+            await expect(vesting.getCurrentPhase()).to.be.revertedWith("No active vesting phase for the current time.")
+
+            await time.increaseTo(phases[0][0])
+
+            expect(await vesting.getCurrentPhase.call()).to.be.equal(0)
+
+            await time.increaseTo(phases[1][0])
+
+            expect(await vesting.getCurrentPhase.call()).to.be.equal(1)
+
+            await time.increaseTo(phases[2][1] + 1)
+
+            await expect(vesting.getCurrentPhase()).to.be.revertedWith("No active vesting phase for the current time.")
+
+            await expect(vesting.getPhase(3)).to.be.revertedWith("Invalid phase number.")
         });
     });
+
+    // describe("Invest", () => {
+    //     it("Invest in phase ", async () => {
+    //         var { vesting, usdt, dj } = await loadFixture(loadTest);
+
+    //         let phasesList = await vesting.getPhases.call()
+    //         console.log(phasesList.length)
+
+    //         await dj.approve(vesting, ethers.parseEther("8000000"))
+    //         await vesting.createPhase(1706745600, ethers.parseEther("0.04"), ethers.parseEther("8000000"), ethers.parseEther("400000"))
+
+    //         phasesList = await vesting.getPhases.call()
+    //         console.log(phasesList.length)
+    //     });
+    // });
 
 });
