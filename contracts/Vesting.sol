@@ -159,17 +159,19 @@ contract Vesting is
 
     /**************************** GETTERS  ****************************/
 
-    // function getCurrentPhase() public view returns (uint8) {
-    //     require(phases.length > 0, "No vesting phases available.");
-    //     // Verificamos que el tiempo actual se encuentre dentro de alguna fase
-    //     uint256 time = block.timestamp;
-    //     require()
+    function getCurrentPhase() public view returns (uint8) {
+        require(phases.length > 0, "No vesting phases available.");
+        uint256 time = block.timestamp;
 
+        for (uint8 i = 0; i < phases.length; i++) {
+            if (time >= phases[i].startTime && time <= phases[i].endTime) {
+                return i;
+            }
+        }
 
+        revert("No active vesting phase for the current time.");
+    }
 
-
-
-    // }
 
     
 

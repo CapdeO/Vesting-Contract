@@ -3,6 +3,17 @@ var { expect } = require("chai");
 var { ethers, upgrades } = require("hardhat");
 var { time } = require("@nomicfoundation/hardhat-network-helpers");
 
+const phases = [
+    [1706745600, 1709251199, "0.04",   "8000000",  "400000", ], // Private Sale
+    [1709251200, 1711929599, "0.06",  "32000000", "1600000", ], // Phase 1
+    [1711929600, 1709251199, "0.07",   "6000000",  "300000", ], // Phase 2
+    [1714521600, 1709251199, "0.075", "40000000", "2000000", ], // Phase 3
+    [1717200000, 1709251199, "0.08",  "40000000", "2000000", ], // Phase 4
+    [1719792000, 1709251199, "0.085", "60000000", "3000000", ], // Phase 5
+    [1722470400, 1709251199, "0.09",  "64000000", "3200000", ], // Phase 6
+    [1706745600, 1709251199, "0.095", "70000000", "3500000", ], // Phase 7
+]
+
 describe("Vesting Contract", () => {
     async function loadTest() {
         var [owner, alice, bob, carl] = await ethers.getSigners();
@@ -43,7 +54,7 @@ describe("Vesting Contract", () => {
             let amount = ethers.parseEther("8000000")
 
             await dj.approve(vesting, amount)
-            await vesting.createPhase(startTime, ethers.parseEther(tokenPrice), ethers.parseEther(initialBalance), ethers.parseEther(maxTokensPerInvestor))
+            await vesting.createPhase(startTime, endTime, ethers.parseEther(tokenPrice), ethers.parseEther(initialBalance), ethers.parseEther(maxTokensPerInvestor))
 
             expect((await vesting.getPhases.call())[0].startTime).to.be.equal(startTime)
             expect(await dj.balanceOf(vesting)).to.be.equal(amount)
