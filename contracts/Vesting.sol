@@ -38,8 +38,8 @@ contract Vesting is
     IERC20 public rewardToken;
     mapping(address => bool) public tokensSupported;
     mapping(address => mapping(uint8 => Investor)) public investors;
-    Phase[] public phases;
-    address[] public tokensSupportedList;
+    Phase[] private phases;
+    address[] private tokensSupportedList;
 
     /**************************** EVENTS  ****************************/
 
@@ -97,11 +97,55 @@ contract Vesting is
             accumulatedCapital: 0,
             totalReleasedTokens: 0
         });
+
+        phases.push(newPhase);
+
+        rewardToken.transferFrom(msg.sender, address(this), _initialBalance);
     }
 
-    // function invest(address _stableAddress, uint256 _stableAmount) public {
-    //     uint256 time = block.timestamp;
-    // }
+    function invest(address _stableAddress, uint256 _stableAmount) external whenNotPaused {
+        require(phases.length > 0, "No vesting phases available.");
+        require(tokensSupported[_stableAddress], "Stable token not supported for purchase.");
+
+        uint256 time = block.timestamp;
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+    function addSupportedToken(address _stableTokenAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_stableTokenAddress != address(0), "Token address cannot be the zero address.");
+        require(!tokensSupported[_stableTokenAddress], "Token already supported.");
+
+        tokensSupported[_stableTokenAddress] = true;
+        tokensSupportedList.push(_stableTokenAddress);
+    }
+
+    function removeSupportedToken(address _stableTokenAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_stableTokenAddress != address(0), "Token address cannot be the zero address.");
+        require(tokensSupported[_stableTokenAddress],"Stable token not supported.");
+
+        delete tokensSupported[_stableTokenAddress];
+        uint indexToBeDeleted;
+        for (uint i = 0; i < tokensSupportedList.length; i++) {
+            if (tokensSupportedList[i] == _stableTokenAddress) {
+                indexToBeDeleted = i;
+                break;
+            }
+        }
+        tokensSupportedList[indexToBeDeleted] = tokensSupportedList[
+            tokensSupportedList.length - 1
+        ];
+        tokensSupportedList.pop();
+    }
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
@@ -118,4 +162,11 @@ contract Vesting is
     /**************************** MODIFIERS  ****************************/
 
 
+    function getTokensSupportedList() public view returns(address[] memory) {
+        return tokensSupportedList;
+    }
+
+    function getPhases() public view returns(Phase[] memory) {
+        return phases;
+    }
 }
