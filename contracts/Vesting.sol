@@ -23,6 +23,8 @@ contract Vesting is
     struct Phase {
         uint256 startTime;
         uint256 endTime;
+        uint256 duration;
+        uint256 cliff;
         uint256 tokenPrice;
         uint256 initialBalance;
         uint256 balance;
@@ -37,6 +39,8 @@ contract Vesting is
         uint256 released;
     }
 
+    uint256 public vestingEnd;
+    uint256 public interval;
     IERC20 public rewardToken;
     mapping(address => bool) public tokensSupported;
     mapping(address => mapping(uint8 => Investor)) private investors;
@@ -54,7 +58,6 @@ contract Vesting is
     );
 
     // event Release(address indexed _investor, uint256 _tokensReleased);
-    // event AccumulatedCapitalWithDrawn(uint256 _amount, uint256 _unsoldTokens);
 
     /**************************** CONSTRUCTOR  ****************************/
 
@@ -93,14 +96,20 @@ contract Vesting is
     function createPhase(
         uint256 _startTime,
         uint256 _endTime,
+        uint256 _cliff,
         uint256 _tokenPrice,
         uint256 _initialBalance,
         uint256 _maxTokensPerInvestor
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
 
+        require(vestingEnd != 0, "Set vesting end time first.");
+        require(interval != 0, "Set interval first.");
+
         Phase memory newPhase = Phase({
             startTime: _startTime,
             endTime: _endTime,
+            duration: vestingEnd - _endTime,
+            cliff: _cliff,
             tokenPrice: _tokenPrice,
             initialBalance: _initialBalance,
             balance: _initialBalance,
@@ -146,6 +155,11 @@ contract Vesting is
 
         require(rewardToken.transfer(owner, phases[_phaseNumber].balance), "Token transfer error.");
         phases[_phaseNumber].balance = 0;
+    }
+
+    function setVestingParams(uint256 _vestingEnd, uint256 _interval) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        vestingEnd = _vestingEnd;
+        interval = _interval;
     }
 
     function addSupportedToken(address _stableTokenAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
