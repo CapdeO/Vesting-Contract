@@ -140,6 +140,14 @@ contract Vesting is
         emit BuyTokens(phaseNumber, _msgSender(), adjustedAmount, tokens);
     }
 
+    function withdrawRemainingTokens(uint8 _phaseNumber) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(block.timestamp > phases[_phaseNumber].endTime, "This phase is not over yet.");
+        require(phases[_phaseNumber].balance > 0, "There are no tokens in this phase.");
+
+        require(rewardToken.transfer(owner, phases[_phaseNumber].balance), "Token transfer error.");
+        phases[_phaseNumber].balance = 0;
+    }
+
     function addSupportedToken(address _stableTokenAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_stableTokenAddress != address(0), "Token address cannot be the zero address.");
         require(!tokensSupported[_stableTokenAddress], "Token already supported.");

@@ -99,11 +99,12 @@ describe("Vesting Contract", () => {
             let amount = 1000000 // ONE DOLLAR
             await time.increaseTo(1707561121) // Saturday, 10 February 2024 10:32:01
             let currentPhaseNumber = await vesting.getCurrentPhaseNumber()
-            let tokensToReceive = (1 / 0.04 * 10 ** 18).toString() // 25 with 18 decimals
+            let tokensToReceive = ethers.parseEther("25")
 
             await usdt.mint(alice, amount)
             await usdt.connect(alice).approve(vesting, amount)
-            await vesting.connect(alice).invest(usdt.target, amount)
+            await expect(vesting.connect(alice).invest(usdt.target, amount))
+                .to.emit(vesting, "BuyTokens").withArgs(currentPhaseNumber, alice.address, ethers.parseEther("1"), tokensToReceive)
             
             expect(await usdt.balanceOf(alice)).to.be.equal(0)
             expect(await usdt.balanceOf(race)).to.be.equal(amount)
@@ -117,7 +118,22 @@ describe("Vesting Contract", () => {
             await time.increaseTo(1711621921) // Thursday, 28 March 2024 10:32:01
             currentPhaseNumber = await vesting.getCurrentPhaseNumber()
 
-            console.log(await vesting.getPhase(currentPhaseNumber))
+            amount = 300000000 // 300 DOLLARS
+            tokensToReceive = ethers.parseEther("5000") 
+
+            await usdt.mint(alice, amount)
+            await usdt.connect(alice).approve(vesting, amount)
+
+            await expect(vesting.connect(alice).invest(usdt.target, amount))
+                .to.emit(vesting, "BuyTokens").withArgs(currentPhaseNumber, alice.address, ethers.parseEther("300"), tokensToReceive)
+
+            aliceInvestment = await vesting.getUserInvestment(alice.address, currentPhaseNumber)
+
+            expect(aliceInvestment[0]).to.be.equal(tokensToReceive)
+            expect(aliceInvestment[1]).to.be.equal(tokensToReceive)
+            expect(aliceInvestment[2]).to.be.equal(0)
+
+            expect(await usdt.balanceOf(race)).to.be.equal(1000000 + 300000000)
         });
     });
 });
