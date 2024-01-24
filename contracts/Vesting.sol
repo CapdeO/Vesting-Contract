@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /// @custom:security-contact capde22@gmail.com
 contract Vesting is
@@ -41,10 +42,12 @@ contract Vesting is
     mapping(address => mapping(uint8 => Investor)) public investors;
     Phase[] private phases;
     address[] private tokensSupportedList;
+    address public owner;
 
     /**************************** EVENTS  ****************************/
 
     event BuyTokens(
+        uint8 _phase,
         address indexed _investor,
         uint256 _stableAmount,
         uint256 _rewardAmount
@@ -62,15 +65,20 @@ contract Vesting is
 
     function initialize(
         address _token,
-        address[] memory _stableTokenAddresses
+        address[] memory _stableTokenAddresses,
+        address _owner
     ) public initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
 
+        owner = _owner;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(UPGRADER_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, owner);
+        _grantRole(PAUSER_ROLE, owner);
+        _grantRole(UPGRADER_ROLE, owner);
 
         rewardToken = IERC20(_token);
 
@@ -110,13 +118,26 @@ contract Vesting is
         require(phases.length > 0, "No vesting phases available.");
         require(tokensSupported[_stableAddress], "Stable token not supported for purchase.");
 
-        // uint8 currentPhase = getCurrentPhase();
+        uint8 phaseNumber = getCurrentPhaseNumber();
+        Phase storage currentPhase = phases[phaseNumber];
 
-        // Phase storage currentPhase = getCurrentPhase();
+        uint256 adjustedAmount = _stableAmount * 10 ** (18 - IERC20Metadata(_stableAddress).decimals());
+        uint256 tokens = (adjustedAmount * 1 ether) / currentPhase.tokenPrice;
 
+        require(tokens <= currentPhase.balance, "There are not enough tokens to buy.");
 
+        Investor storage investor = investors[msg.sender][phaseNumber];
 
+        require(investor.balance + tokens <= currentPhase.maxTokensPerInvestor,"The purchase of tokens exceeds the maximum limit per user.");
 
+        investor.balance += tokens;
+        investor.total += tokens;
+        currentPhase.balance -= tokens;
+        currentPhase.accumulatedCapital += _stableAmount;
+
+        IERC20(_stableAddress).transferFrom(msg.sender, owner, _stableAmount);
+
+        emit BuyTokens(phaseNumber, _msgSender(), adjustedAmount, tokens);
     }
 
     function addSupportedToken(address _stableTokenAddress) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -159,7 +180,7 @@ contract Vesting is
 
     /**************************** GETTERS  ****************************/
 
-    function getCurrentPhase() public view returns (uint8) {
+    function getCurrentPhaseNumber() public view returns (uint8) {
         require(phases.length > 0, "No vesting phases available.");
         uint256 time = block.timestamp;
 

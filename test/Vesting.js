@@ -16,7 +16,7 @@ const phases = [
 
 describe("Vesting Contract", () => {
     async function loadTest() {
-        var [owner, alice, bob, carl] = await ethers.getSigners();
+        var [owner, alice, bob, carl, race] = await ethers.getSigners();
         var USDT = await ethers.getContractFactory("TetherUSD");
         var usdt = await USDT.deploy();
         var DJ = await ethers.getContractFactory("DreamJunk");
@@ -24,7 +24,7 @@ describe("Vesting Contract", () => {
 
         var VESTING = await ethers.getContractFactory("Vesting");
         var vesting = await upgrades.deployProxy(VESTING, 
-            [dj.target, [usdt.target]],
+            [dj.target, [usdt.target], race.address],
             { initializer: 'initialize', kind: 'uups' });
 
         return { vesting, usdt, dj, owner, alice, bob, carl };
@@ -57,7 +57,7 @@ describe("Vesting Contract", () => {
         it("Get actual Phase", async () => {
             var { vesting, dj } = await loadFixture(loadTest);
 
-            await expect(vesting.getCurrentPhase()).to.be.revertedWith("No vesting phases available.")
+            await expect(vesting.getCurrentPhaseNumber()).to.be.revertedWith("No vesting phases available.")
 
             await dj.approve(vesting, phases[0][3])
             await vesting.createPhase(phases[0][0], phases[0][1], phases[0][2], phases[0][3], phases[0][4])
@@ -68,37 +68,48 @@ describe("Vesting Contract", () => {
             await dj.approve(vesting, phases[2][3])
             await vesting.createPhase(phases[2][0], phases[2][1], phases[2][2], phases[2][3], phases[2][4])
 
-            await expect(vesting.getCurrentPhase()).to.be.revertedWith("No active vesting phase for the current time.")
+            await expect(vesting.getCurrentPhaseNumber()).to.be.revertedWith("No active vesting phase for the current time.")
 
             await time.increaseTo(phases[0][0])
 
-            expect(await vesting.getCurrentPhase.call()).to.be.equal(0)
+            expect(await vesting.getCurrentPhaseNumber.call()).to.be.equal(0)
 
             await time.increaseTo(phases[1][0])
 
-            expect(await vesting.getCurrentPhase.call()).to.be.equal(1)
+            expect(await vesting.getCurrentPhaseNumber.call()).to.be.equal(1)
 
             await time.increaseTo(phases[2][1] + 1)
 
-            await expect(vesting.getCurrentPhase()).to.be.revertedWith("No active vesting phase for the current time.")
+            await expect(vesting.getCurrentPhaseNumber()).to.be.revertedWith("No active vesting phase for the current time.")
 
             await expect(vesting.getPhase(3)).to.be.revertedWith("Invalid phase number.")
         });
     });
 
-    // describe("Invest", () => {
-    //     it("Invest in phase ", async () => {
-    //         var { vesting, usdt, dj } = await loadFixture(loadTest);
+    describe("Invest", () => {
+        it("Invest in phase ", async () => {
+            var { vesting, usdt, dj, owner, alice } = await loadFixture(loadTest);
 
-    //         let phasesList = await vesting.getPhases.call()
-    //         console.log(phasesList.length)
+            await dj.approve(vesting, phases[0][3])
+            await vesting.createPhase(phases[0][0], phases[0][1], phases[0][2], phases[0][3], phases[0][4])
 
-    //         await dj.approve(vesting, ethers.parseEther("8000000"))
-    //         await vesting.createPhase(1706745600, ethers.parseEther("0.04"), ethers.parseEther("8000000"), ethers.parseEther("400000"))
+            await time.increaseTo(1707561121)
+            let phaseNumber = await vesting.getCurrentPhaseNumber()
 
-    //         phasesList = await vesting.getPhases.call()
-    //         console.log(phasesList.length)
-    //     });
-    // });
+            console.log(await usdt.balanceOf(owner.address))
+
+            // console.log(await vesting.getPhase(phaseNumber))
+
+            // await usdt.mint(alice, 10)
+            // console.log(await usdt.balanceOf(alice))
+
+            // await usdt.connect(alice).approve(vesting, 10)
+            // await vesting.connect(alice).invest(usdt.target, 10)
+
+            // console.log(await usdt.balanceOf(alice))
+
+            // console.log(await vesting.getPhase(phaseNumber))
+        });
+    });
 
 });
