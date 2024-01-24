@@ -27,7 +27,7 @@ describe("Vesting Contract", () => {
             [dj.target, [usdt.target], race.address],
             { initializer: 'initialize', kind: 'uups' });
 
-        return { vesting, usdt, dj, owner, alice, bob, carl };
+        return { vesting, usdt, dj, owner, alice, bob, carl, race };
     }
 
     describe("Deploy", () => {
@@ -88,28 +88,36 @@ describe("Vesting Contract", () => {
 
     describe("Invest", () => {
         it("Invest in phase ", async () => {
-            var { vesting, usdt, dj, owner, alice } = await loadFixture(loadTest);
+            var { vesting, usdt, dj, alice, race } = await loadFixture(loadTest);
 
             await dj.approve(vesting, phases[0][3])
             await vesting.createPhase(phases[0][0], phases[0][1], phases[0][2], phases[0][3], phases[0][4])
 
-            await time.increaseTo(1707561121)
-            let phaseNumber = await vesting.getCurrentPhaseNumber()
+            await dj.approve(vesting, phases[1][3])
+            await vesting.createPhase(phases[1][0], phases[1][1], phases[1][2], phases[1][3], phases[1][4])
 
-            console.log(await usdt.balanceOf(owner.address))
+            let amount = 1000000 // ONE DOLLAR
+            await time.increaseTo(1707561121) // Saturday, 10 February 2024 10:32:01
+            let currentPhaseNumber = await vesting.getCurrentPhaseNumber()
+            let tokensToReceive = (1 / 0.04 * 10 ** 18).toString() // 25 with 18 decimals
 
-            // console.log(await vesting.getPhase(phaseNumber))
+            await usdt.mint(alice, amount)
+            await usdt.connect(alice).approve(vesting, amount)
+            await vesting.connect(alice).invest(usdt.target, amount)
+            
+            expect(await usdt.balanceOf(alice)).to.be.equal(0)
+            expect(await usdt.balanceOf(race)).to.be.equal(amount)
 
-            // await usdt.mint(alice, 10)
-            // console.log(await usdt.balanceOf(alice))
+            let aliceInvestment = await vesting.getUserInvestment(alice.address, currentPhaseNumber)
 
-            // await usdt.connect(alice).approve(vesting, 10)
-            // await vesting.connect(alice).invest(usdt.target, 10)
+            expect(aliceInvestment[0]).to.be.equal(tokensToReceive)
+            expect(aliceInvestment[1]).to.be.equal(tokensToReceive)
+            expect(aliceInvestment[2]).to.be.equal(0)
 
-            // console.log(await usdt.balanceOf(alice))
+            await time.increaseTo(1711621921) // Thursday, 28 March 2024 10:32:01
+            currentPhaseNumber = await vesting.getCurrentPhaseNumber()
 
-            // console.log(await vesting.getPhase(phaseNumber))
+            console.log(await vesting.getPhase(currentPhaseNumber))
         });
     });
-
 });

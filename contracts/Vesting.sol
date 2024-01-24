@@ -39,7 +39,7 @@ contract Vesting is
 
     IERC20 public rewardToken;
     mapping(address => bool) public tokensSupported;
-    mapping(address => mapping(uint8 => Investor)) public investors;
+    mapping(address => mapping(uint8 => Investor)) private investors;
     Phase[] private phases;
     address[] private tokensSupportedList;
     address public owner;
@@ -200,12 +200,16 @@ contract Vesting is
         return phases[_phase];
     }
 
-    function getTokensSupportedList() public view returns(address[] memory) {
+    function getTokensSupportedList() external view returns(address[] memory) {
         return tokensSupportedList;
     }
 
-    function getPhases() public view returns(Phase[] memory) {
+    function getPhases() external view returns(Phase[] memory) {
         return phases;
+    }
+
+    function getUserInvestment(address _investor, uint8 _phase) external view returns (Investor memory) {
+        return investors[_investor][_phase];
     }
 
     /**************************** MODIFIERS  ****************************/
