@@ -57,7 +57,7 @@ contract Vesting is
         uint256 _rewardAmount
     );
 
-    // event Release(address indexed _investor, uint256 _tokensReleased);
+    event Release(address indexed _investor, uint256 _tokensReleased, uint8 _phaseNumber);
 
     /**************************** CONSTRUCTOR  ****************************/
 
@@ -103,6 +103,7 @@ contract Vesting is
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
 
         require(vestingEnd != 0, "Set vesting end time first.");
+        require(_endTime < vestingEnd, "End time must be lower than vesting end");
         require(interval != 0, "Set interval first.");
 
         Phase memory newPhase = Phase({
@@ -123,8 +124,7 @@ contract Vesting is
         rewardToken.transferFrom(msg.sender, address(this), _initialBalance);
     }
 
-    function invest(address _stableAddress, uint256 _stableAmount) external whenNotPaused {
-        require(phases.length > 0, "No vesting phases available.");
+    function invest(address _stableAddress, uint256 _stableAmount) external whenNotPaused onlyExisting {
         require(tokensSupported[_stableAddress], "Stable token not supported for purchase.");
 
         uint8 phaseNumber = getCurrentPhaseNumber();
@@ -144,12 +144,49 @@ contract Vesting is
         currentPhase.balance -= tokens;
         currentPhase.accumulatedCapital += _stableAmount;
 
-        IERC20(_stableAddress).transferFrom(msg.sender, owner, _stableAmount);
+        require(IERC20(_stableAddress).transferFrom(msg.sender, owner, _stableAmount), "Stable transfer error.");
 
         emit BuyTokens(phaseNumber, _msgSender(), adjustedAmount, tokens);
     }
 
-    function withdrawRemainingTokens(uint8 _phaseNumber) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function release(uint8 _phaseNumber) external whenNotPaused onlyExisting onlyValid(_phaseNumber) {
+        require(block.timestamp > phases[_phaseNumber].endTime, "This action can only be performed during the vesting period.");
+
+        Investor storage investor = investors[msg.sender][_phaseNumber];
+        uint256 unreleased = releasableAmount(_phaseNumber);
+        require(unreleased > 0, "Vesting: No tokens are due for release yet.");
+
+        investor.released += unreleased;
+        investor.balance -= unreleased;
+        phases[_phaseNumber].totalReleasedTokens += unreleased;
+
+        require(rewardToken.transfer(msg.sender, unreleased), "Token transfer error.");
+
+        emit Release(msg.sender, unreleased, _phaseNumber);
+    }
+
+    function releasableAmount(uint8 _phaseNumber) public view returns (uint256) {
+        Investor memory investor = investors[msg.sender][_phaseNumber];
+        return vestedAmount(_phaseNumber) - investor.released;
+    }
+
+    function vestedAmount(uint8 _phaseNumber) public view returns (uint256) {
+        Investor memory investor = investors[msg.sender][_phaseNumber];
+        uint256 currentBalance = investor.balance;
+        uint256 currentTime = block.timestamp;
+
+        if (currentTime <= phases[_phaseNumber].cliff) {
+            return 0;
+        } else if (currentTime >= vestingEnd) {
+            return currentBalance;
+        } else {
+            uint256 intervals = (currentTime - phases[_phaseNumber].cliff) / interval;
+            return (investor.total * intervals * interval) / phases[_phaseNumber].duration;
+        }
+
+    }
+
+    function withdrawRemainingTokens(uint8 _phaseNumber) external onlyRole(DEFAULT_ADMIN_ROLE) onlyExisting onlyValid(_phaseNumber) {
         require(block.timestamp > phases[_phaseNumber].endTime, "This phase is not over yet.");
         require(phases[_phaseNumber].balance > 0, "There are no tokens in this phase.");
 
@@ -202,8 +239,7 @@ contract Vesting is
 
     /**************************** GETTERS  ****************************/
 
-    function getCurrentPhaseNumber() public view returns (uint8) {
-        require(phases.length > 0, "No vesting phases available.");
+    function getCurrentPhaseNumber() public view onlyExisting returns (uint8) {
         uint256 time = block.timestamp;
 
         for (uint8 i = 0; i < phases.length; i++) {
@@ -215,27 +251,31 @@ contract Vesting is
         revert("No active vesting phase for the current time.");
     }
 
-    function getPhase(uint8 _phase) public view returns (Phase memory) {
-        require(phases.length > 0, "No vesting phases available.");
-        require(_phase < phases.length, "Invalid phase number.");
-
-        return phases[_phase];
+    function getPhase(uint8 _phaseNumber) public view onlyExisting onlyValid(_phaseNumber) returns (Phase memory) {
+        return phases[_phaseNumber];
     }
 
     function getTokensSupportedList() external view returns(address[] memory) {
         return tokensSupportedList;
     }
 
-    function getPhases() external view returns(Phase[] memory) {
+    function getPhases() external view onlyExisting returns(Phase[] memory) {
         return phases;
     }
 
-    function getUserInvestment(address _investor, uint8 _phase) external view returns (Investor memory) {
-        return investors[_investor][_phase];
+    function getUserInvestment(address _investor, uint8 _phaseNumber) external view onlyExisting onlyValid(_phaseNumber) returns (Investor memory) {
+        return investors[_investor][_phaseNumber];
     }
 
     /**************************** MODIFIERS  ****************************/
 
+    modifier onlyExisting() {
+        require(phases.length > 0, "No vesting phases available.");
+        _;
+    }
 
-    
+    modifier onlyValid(uint8 _phaseNumber) {
+        require(_phaseNumber < phases.length, "Invalid phase number.");
+        _;
+    }
 }
