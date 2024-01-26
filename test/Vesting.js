@@ -74,11 +74,11 @@ describe("Vesting Contract", () => {
 
             await time.increaseTo(phase0[0])
 
-            expect(await vesting.getCurrentPhaseNumber.call()).to.be.equal(0)
+            expect(await vesting.getCurrentPhaseNumber()).to.be.equal(0)
 
             await time.increaseTo(phase1[0])
 
-            expect(await vesting.getCurrentPhaseNumber.call()).to.be.equal(1)
+            expect(await vesting.getCurrentPhaseNumber()).to.be.equal(1)
 
             await time.increaseTo(phase2[1] + 1)
 
@@ -89,7 +89,7 @@ describe("Vesting Contract", () => {
     });
 
     describe("Invest", () => {
-        it("Invest in phase ", async () => {
+        it("Invest in phase", async () => {
             var { vesting, usdt, dj, alice, race } = await loadFixture(loadTest);
 
             await vesting.setVestingParams(vestingEnd, oneMonth)
@@ -100,7 +100,7 @@ describe("Vesting Contract", () => {
             await vesting.createPhase(...phase1)
 
             let amount = 1000000 // ONE DOLLAR
-            await time.increaseTo(1707561121) // Saturday, 10 February 2024 10:32:01
+            await time.increaseTo(1711463881) //  Tuesday, 26 March 2024 14:38:01
             let currentPhaseNumber = await vesting.getCurrentPhaseNumber()
             let tokensToReceive = ethers.parseEther("25")
 
@@ -118,7 +118,7 @@ describe("Vesting Contract", () => {
             expect(aliceInvestment[1]).to.be.equal(tokensToReceive)
             expect(aliceInvestment[2]).to.be.equal(0)
 
-            await time.increaseTo(1711621921) // Thursday, 28 March 2024 10:32:01
+            await time.increaseTo(1714142281) //  Friday, 26 April 2024 14:38:01
             currentPhaseNumber = await vesting.getCurrentPhaseNumber()
 
             amount = 300000000 // 300 DOLLARS
@@ -137,6 +137,43 @@ describe("Vesting Contract", () => {
             expect(aliceInvestment[2]).to.be.equal(0)
 
             expect(await usdt.balanceOf(race)).to.be.equal(1000000 + 300000000)
+        });
+    });
+
+    describe("Release", () => {
+        it("Reverts", async () => {
+            var { vesting, dj } = await loadFixture(loadTest);
+
+            await expect(vesting.release(0)).to.be.revertedWith("No vesting phases available.")
+
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await dj.approve(vesting.target, phase0[4])
+            await vesting.createPhase(...phase0)
+
+            await expect(vesting.release(1)).to.be.revertedWith("Invalid phase number.")
+
+            await time.increaseTo(1711463881) // Tuesday, 26 March 2024 14:38:01
+
+            await expect(vesting.release(0)).to.be.revertedWith("This action can only be performed during the vesting period.")
+
+            await time.increaseTo(1711982281) // Monday, 1 April 2024 14:38:01
+
+            await expect(vesting.release(0)).to.be.revertedWith("Vesting: No tokens are due for release yet.")
+        });
+
+        it("Release", async () => {
+            var { vesting, dj, usdt, alice } = await loadFixture(loadTest);
+
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await dj.approve(vesting.target, phase0[4])
+            await vesting.createPhase(...phase0)
+
+            await usdt.mint(alice.address, 50000000)
+            await usdt.connect(alice).approve(vesting.target, 50000000)
+
+            console.log(new Date()) 
+            // await vesting.connect(alice).invest(usdt.target, 50000000)
+
         });
     });
 });
