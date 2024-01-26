@@ -110,7 +110,7 @@ contract Vesting is
             startTime: _startTime,
             endTime: _endTime,
             duration: vestingEnd - _endTime,
-            cliff: _cliff,
+            cliff: _endTime +_cliff,
             tokenPrice: _tokenPrice,
             initialBalance: _initialBalance,
             balance: _initialBalance,
@@ -167,7 +167,17 @@ contract Vesting is
 
     function releasableAmount(uint8 _phaseNumber) public view returns (uint256) {
         Investor memory investor = investors[msg.sender][_phaseNumber];
-        return vestedAmount(_phaseNumber) - investor.released;
+        uint256 vested = vestedAmount(_phaseNumber);
+
+        // return vested - investor.released;
+
+        return vested;
+
+        // if (vested >= investor.released) {
+        //     return vested - investor.released;
+        // } else {
+        //     return 0;
+        // }
     }
 
     function vestedAmount(uint8 _phaseNumber) public view returns (uint256) {
@@ -183,7 +193,6 @@ contract Vesting is
             uint256 intervals = (currentTime - phases[_phaseNumber].cliff) / interval;
             return (investor.total * intervals * interval) / phases[_phaseNumber].duration;
         }
-
     }
 
     function withdrawRemainingTokens(uint8 _phaseNumber) external onlyRole(DEFAULT_ADMIN_ROLE) onlyExisting onlyValid(_phaseNumber) {

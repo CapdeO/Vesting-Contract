@@ -14,6 +14,11 @@ const phase7 = [1727740800, 1730419199, 0, ethers.parseEther("0.095"), ethers.pa
 const vestingEnd = 1775001600 // Wednesday, 1 April 2026 0:00:00
 const oneMonth = 2629743 // In secs
 
+function toNormal(_number) {
+    let number = _number.toString()
+    return (number / 10 ** 18).toFixed(2)
+}
+
 describe("Vesting Contract", () => {
     async function loadTest() {
         var [owner, alice, bob, carl, race] = await ethers.getSigners();
@@ -165,15 +170,44 @@ describe("Vesting Contract", () => {
             var { vesting, dj, usdt, alice } = await loadFixture(loadTest);
 
             await vesting.setVestingParams(vestingEnd, oneMonth)
-            await dj.approve(vesting.target, phase0[4])
+            await dj.approve(vesting, phase0[4])
             await vesting.createPhase(...phase0)
 
-            await usdt.mint(alice.address, 50000000)
-            await usdt.connect(alice).approve(vesting.target, 50000000)
+            await time.increaseTo(1710460800) // Friday, 15 March 2024 0:00:00
+            await usdt.mint(alice.address, 1000000)
+            await usdt.connect(alice).approve(vesting, 1000000)
+            await vesting.connect(alice).invest(usdt.target, 1000000)
 
-            console.log(new Date()) 
-            // await vesting.connect(alice).invest(usdt.target, 50000000)
+            // console.log('Balance Alice: ' + toNormal(await dj.balanceOf(alice.address)))
 
+            console.log('----------------------------')
+            await time.increaseTo(1743465600)
+            console.log("Tuesday, 1 April 2025 0:00:00")
+            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
+            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
+            await vesting.connect(alice).release(0)
+            console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
+
+            console.log('----------------------------')
+            await time.increaseTo(1775001600)
+            console.log("Wednesday, 1 April 2026 0:00:00")
+            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
+            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
+
+            // await vesting.connect(alice).release(0)
+            // console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
+
+            console.log('----------------------------')
+            await time.increaseTo(1777593600)
+            console.log("Friday, 1 May 2026 0:00:00")
+            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
+            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
+
+            await vesting.connect(alice).release(0)
+            console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
+
+            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
+            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
         });
     });
 });
