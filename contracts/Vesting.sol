@@ -169,26 +169,18 @@ contract Vesting is
         Investor memory investor = investors[msg.sender][_phaseNumber];
         uint256 vested = vestedAmount(_phaseNumber);
 
-        // return vested - investor.released;
-
-        return vested;
-
-        // if (vested >= investor.released) {
-        //     return vested - investor.released;
-        // } else {
-        //     return 0;
-        // }
+        return vested - investor.released;
     }
 
     function vestedAmount(uint8 _phaseNumber) public view returns (uint256) {
         Investor memory investor = investors[msg.sender][_phaseNumber];
-        uint256 currentBalance = investor.balance;
+        uint256 totalBalance = investor.total;
         uint256 currentTime = block.timestamp;
 
         if (currentTime <= phases[_phaseNumber].cliff) {
             return 0;
         } else if (currentTime >= vestingEnd) {
-            return currentBalance;
+            return totalBalance;
         } else {
             uint256 intervals = (currentTime - phases[_phaseNumber].cliff) / interval;
             return (investor.total * intervals * interval) / phases[_phaseNumber].duration;
