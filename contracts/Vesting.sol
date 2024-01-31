@@ -256,6 +256,10 @@ contract Vesting is
         return phases[_phaseNumber];
     }
 
+    function getPhasesCount() public view returns (uint256) {
+        return phases.length;
+    }
+
     function getTokensSupportedList() external view returns(address[] memory) {
         return tokensSupportedList;
     }
@@ -267,6 +271,18 @@ contract Vesting is
     function getUserInvestment(address _investor, uint8 _phaseNumber) external view onlyExisting onlyValid(_phaseNumber) returns (Investor memory) {
         return investors[_investor][_phaseNumber];
     }
+
+    function getUserInvestments(address _investor) external view onlyExisting returns (Investor[] memory) {
+
+        Investor[] memory userInvestments = new Investor[](phases.length);
+
+        for (uint8 i = 0; i < phases.length; i++) {
+            userInvestments[i] = investors[_investor][i];
+        }
+
+        return userInvestments;
+    }
+
 
     /**************************** MODIFIERS  ****************************/
 

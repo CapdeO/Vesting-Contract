@@ -173,231 +173,74 @@ describe("Vesting Contract", () => {
             await dj.approve(vesting, phase0[4])
             await vesting.createPhase(...phase0)
 
-            await time.increase(2629743 * 2)
+            await time.increase(2629743 * 1)
             await usdt.mint(alice.address, 4000000)
             await usdt.connect(alice).approve(vesting, 4000000)
-            console.log('Alice compra 100 tokens con 4 dolares')
             await vesting.connect(alice).invest(usdt.target, 4000000)
 
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-
-            // console.log('Balance Alice: ' + toNormal(await dj.balanceOf(alice.address)))
-
-            console.log('------------------------ 1 mes después')
             await time.increaseTo(1713190474)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            // await vesting.connect(alice).release(0)
-            // console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-
-            // await vesting.connect(alice).release(0)
-            // console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-
-            // await vesting.connect(alice).release(0)
-            // console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
-            // console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            await vesting.connect(alice).release(0)
-            console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
-
-            await vesting.connect(alice).release(0)
-            console.log('Alice retiró. Balance Alice --->  ' + toNormal(await dj.balanceOf(alice.address)))
-            
-            console.log('------------------------ 1 mes después')
-            await time.increase(2629743)
-            console.log('Releasable: ' + toNormal(await vesting.connect(alice).releasableAmount(0)))
-            console.log('En el contrato: ' + toNormal((await vesting.getUserInvestment(alice.address, 0))[1]))
-            console.log('Vested: ' + toNormal(await vesting.connect(alice).vestedAmount(0)))
-            console.log('')
 
         });
+
+
+    });
+
+    describe("Read functions", () => {
+
+        it("getPhasesCount", async () => {
+            var { vesting, dj } = await loadFixture(loadTest);
+
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            expect(await vesting.getPhasesCount()).to.be.equal(0)
+            await dj.approve(vesting, phase0[4])
+            await vesting.createPhase(...phase0)
+            expect(await vesting.getPhasesCount()).to.be.equal(1)
+            await dj.approve(vesting, phase1[4])
+            await vesting.createPhase(...phase1)
+            expect(await vesting.getPhasesCount()).to.be.equal(2)
+        });
+
+        it("getUserInvestments", async () => {
+            var { vesting, usdt, dj, alice, race } = await loadFixture(loadTest);
+
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+
+            await dj.approve(vesting, phase0[4] + phase1[4] + phase2[4])
+            await vesting.createPhase(...phase0)
+            await vesting.createPhase(...phase1)
+            await vesting.createPhase(...phase2)
+
+            await usdt.mint(alice.address, ethers.parseUnits("1000", 6))
+            await usdt.connect(alice).approve(vesting.target, ethers.parseUnits("1000", 6))
+
+            await time.increaseTo(1710512767) // Friday, 15 March 2024 14:26:07
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("500", 6))
+
+            await time.increaseTo(1713191167) // Monday, 15 April 2024 14:26:07
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("300", 6))
+
+            await time.increaseTo(1715783167) // Wednesday, 15 May 2024 14:26:07
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("200", 6))
+
+            let aliceInvestments = await vesting.getUserInvestments(alice.address)
+
+            expect(aliceInvestments[0][0]).to.be.equal(ethers.parseEther("12500"))
+            expect(aliceInvestments[0][1]).to.be.equal(ethers.parseEther("12500"))
+            expect(aliceInvestments[0][2]).to.be.equal(0)
+            expect(aliceInvestments[1][0]).to.be.equal(ethers.parseEther("5000"))
+            expect(aliceInvestments[1][1]).to.be.equal(ethers.parseEther("5000"))
+            expect(aliceInvestments[1][2]).to.be.equal(0)
+            expect(aliceInvestments[2][0]).to.be.equal("2857142857142857142857")
+            expect(aliceInvestments[2][1]).to.be.equal("2857142857142857142857")
+            expect(aliceInvestments[2][2]).to.be.equal(0)
+
+            // console.log(aliceInvestments[0][0])
+
+            await vesting.connect(alice).release(0)
+
+            // console.log(await vesting.getUserInvestments(alice.address))
+        });
+
+        
     });
 });
