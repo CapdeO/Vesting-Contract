@@ -283,6 +283,16 @@ contract Vesting is
         return userInvestments;
     }
 
+    function getUserReleasableAmounts() external view onlyExisting returns (uint256[] memory) {
+        uint256[] memory userReleasableAmounts = new uint256[](phases.length);
+
+        for (uint8 i = 0; i < phases.length; i++) {
+            userReleasableAmounts[i] = releasableAmount(i);
+        }
+
+        return userReleasableAmounts;
+    }
+
 
     /**************************** MODIFIERS  ****************************/
 
