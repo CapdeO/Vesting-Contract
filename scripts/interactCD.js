@@ -7,7 +7,7 @@ const { ethers, upgrades } = require("hardhat");
 // Phases
 const vestingEnd = 1759276801
 const interval = 2629743
-const phase5 = [1707930715, 1710560458, 0, ethers.parseEther("0.09"),   ethers.parseEther("15000000"),  ethers.parseEther("500000")]
+const phase5 = [1711367876, 1713997619, 0, ethers.parseEther("0.10"),   ethers.parseEther("16000000"),  ethers.parseEther("500000")]
 
 const wait = (ms) => {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -21,22 +21,13 @@ async function main() {
     const CD = await hre.ethers.getContractFactory("CryptoDeptoToken");
     const cd = CD.attach('0x86Dcf0116FC6A2e6854e0277054F1E06e38A796e');
 
-    console.log('Establishing vesting parameters...')
-    const setVestingParamsTransaction = await vesting.setVestingParams(
-        vestingEnd,
-        interval
-    );
-    await setVestingParamsTransaction.wait()
-    await wait(30000);
-    console.log('Vesting parameters ready.')
+    // console.log('Approving CD...')
+    // const approveTransaction = await cd.approve(vesting.target, phase5[4])
+    // await approveTransaction.wait()
+    // await wait(30000)
+    // console.log('Approval ready.')
 
-    console.log('Approving CD...')
-    const approveTransaction = await cd.approve(vesting.target, phase5[4])
-    await approveTransaction.wait()
-    await wait(30000)
-    console.log('Approval ready.')
-
-    await wait(20000);
+    // await wait(20000);
     console.log('Creating phase...')
     const createPhaseTransaction = await vesting.createPhase(...phase5);
     await createPhaseTransaction.wait()

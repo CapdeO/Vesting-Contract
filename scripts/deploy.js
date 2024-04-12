@@ -1,17 +1,31 @@
 const { ethers, upgrades } = require("hardhat");
 
-// Mumbai
-// 0x7a6C7a3bab11D57423f9F5690AF6ff38BE2d771f USDT
-// 0xD345D94552C88DD997F117C5987657526616ECB6 DJ
-// 0x8Db673441f806aD20526d8Bb30Af54F03B798F82 Vesting proxy
-// 0xDa005Ae70DCf099191de08fb0dE1bf5FD2c4ED50 Vesting Impl v1
+// Amoy
+// 0x20cfc5962b1abe4931688ff71de3d5ee053fb283 USDT
+// 0xD1e8372C333158331eDf0edd994270AD8896E0a3 USDC
+// 0x755B7bd472Eb98cb355A6e9c1588c03c19141471 BUSD
+// 0xf88718d191892cde8774dccebc12a024289d96ea DJ
 
 // Polygon
 //
 //
 
+async function stablecoin() {
+    var contract = await ethers.deployContract("USDC", {gasPrice: '3200000000'});
+    console.log(`Address del contrato ${await contract.getAddress()}`)
+
+    var res = await contract.waitForDeployment();
+    await res.deploymentTransaction().wait(5);
+
+    await hre.run("verify:verify", {
+        address: await contract.getAddress(),
+        constructorArguments: [],
+        contract: "contracts/Stablecoin.sol:USDC"
+    });
+}
+
 async function dj() {
-    var contractDJ = await ethers.deployContract("DreamJunk");
+    var contractDJ = await ethers.deployContract("DreamJunkStudios");
     console.log(`Address del contrato ${await contractDJ.getAddress()}`)
 
     var res = await contractDJ.waitForDeployment();
@@ -20,8 +34,10 @@ async function dj() {
     await hre.run("verify:verify", {
         address: await contractDJ.getAddress(),
         constructorArguments: [],
-        contract: "contracts/ERC20.sol:DreamJunk"
+        contract: "contracts/ERC20.sol:DreamJunkStudios"
     });
+
+    // npx hardhat verify --contract contracts/ERC20.sol:DreamJunkStudios 0xf88718d191892cde8774dccebc12a024289d96ea --network polygonAmoy
 }
 
 async function vesting() {
@@ -59,7 +75,7 @@ async function vesting() {
     });
 }
 
-vesting().catch((error) => {
+stablecoin().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
