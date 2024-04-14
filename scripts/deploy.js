@@ -5,6 +5,8 @@ const { ethers, upgrades } = require("hardhat");
 // 0xD1e8372C333158331eDf0edd994270AD8896E0a3 USDC
 // 0x755B7bd472Eb98cb355A6e9c1588c03c19141471 BUSD
 // 0xf88718d191892cde8774dccebc12a024289d96ea DJ
+// 0x29c55A22976288B226c8D55b2E9fa411EB4657C3 Vesting proxy
+// 0x94D323fd50590C49dBbBc563Ca8E4fe331b27ea7 Vesting impl
 
 // Polygon
 //
@@ -41,10 +43,10 @@ async function dj() {
 }
 
 async function vesting() {
-    // Mumbai
-    let token = '0xD345D94552C88DD997F117C5987657526616ECB6'
-    let stableTokens = ['0x7a6C7a3bab11D57423f9F5690AF6ff38BE2d771f']
-    let owner = '0xB9840E6Cd6e7200FDEea1348834c61E6Af53D6A0'
+    // Amoy
+    let token = '0xf88718d191892cde8774dccebc12a024289d96ea'
+    let stableTokens = ['0x20cfc5962b1abe4931688ff71de3d5ee053fb283', '0xD1e8372C333158331eDf0edd994270AD8896E0a3', '0x755B7bd472Eb98cb355A6e9c1588c03c19141471']
+    let owner = '0xDA81E62c2C428bDde5D3271014DbE0cfd3cfeC26'
 
     // Polygon
     // let token = ''
@@ -75,7 +77,7 @@ async function vesting() {
     });
 }
 
-stablecoin().catch((error) => {
+vesting().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

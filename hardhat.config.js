@@ -20,6 +20,7 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY],
       allowUnlimitedContractSize: false,
       timeout: 1000 * 60,
+      gasPrice: 6200000000
     },
     mumbai: {
       chainId: 80001,
