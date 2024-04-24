@@ -59,11 +59,9 @@ async function main() {
     // await wait(30000)
     // console.log('Phase created.')
 
-    const end = await vesting.getPhase(0)
+    const end = await dreamJunk.balanceOf('0x61D4d1Ab7eA7B3A54C7B2D646Eb8189faD7B1050')
     console.log(end)
 }
-
-
 
 main().catch((error) => {
     console.error(error);
