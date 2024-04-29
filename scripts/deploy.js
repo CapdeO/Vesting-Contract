@@ -9,7 +9,7 @@ const { ethers, upgrades } = require("hardhat");
 // 0x94D323fd50590C49dBbBc563Ca8E4fe331b27ea7 Vesting impl
 
 // Polygon
-// 0xfA84B0b6d79c0581e4cE19A6548Bd864C200Bf6c DRM
+// 0xecF87992f371f72621e70bdFDd07F698e3f9C6cC DRM
 // 
 
 async function stablecoin() {
@@ -27,7 +27,7 @@ async function stablecoin() {
 }
 
 async function DRM() {
-    var contractDRM = await ethers.deployContract("DreamJunkStudios");
+    var contractDRM = await ethers.deployContract("DreamJunk");
     console.log(`Address del contrato ${await contractDRM.getAddress()}`)
 
     var res = await contractDRM.waitForDeployment();
@@ -36,10 +36,10 @@ async function DRM() {
     await hre.run("verify:verify", {
         address: await contractDRM.getAddress(),
         constructorArguments: [],
-        contract: "contracts/ERC20.sol:DreamJunkStudios"
+        contract: "contracts/ERC20.sol:DreamJunk"
     });
 
-    // npx hardhat verify --contract contracts/ERC20.sol:DreamJunkStudios 0xf88718d191892cde8774dccebc12a024289d96ea --network polygonAmoy
+    // npx hardhat verify --contract contracts/ERC20.sol:DreamJunk 0xecF87992f371f72621e70bdFDd07F698e3f9C6cC --network polygon
 }
 
 async function vesting() {

@@ -9,7 +9,7 @@ const { ethers, upgrades } = require("hardhat");
 // 0x94D323fd50590C49dBbBc563Ca8E4fe331b27ea7 Vesting impl
 
 // Polygon
-//
+// 0xecF87992f371f72621e70bdFDd07F698e3f9C6cC DRM
 //
 
 // TEST PARAMS
@@ -31,7 +31,7 @@ async function main() {
 
     const dreamJunk = await hre.ethers.getContractAt(
         "DreamJunkStudios",
-        "0xf88718d191892cde8774dccebc12a024289d96ea"
+        "0xecF87992f371f72621e70bdFDd07F698e3f9C6cC"
     )
 
     // console.log('Establishing vesting parameters...')
