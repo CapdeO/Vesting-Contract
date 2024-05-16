@@ -23,6 +23,7 @@ contract VestingTeam is
     struct Phase {
         uint256 startTime;
         uint256 endTime;
+        uint256 duration;
         uint256 cliff;
         uint256 totalReleasedTokens;
     }
@@ -75,8 +76,7 @@ contract VestingTeam is
     function createPhase(
         uint256 _startTime,
         uint256 _endTime,
-        uint256 _cliff,
-        uint256 _initialBalance
+        uint256 _cliff
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
 
         require(vestingEnd != 0, "Set vesting end time first.");
@@ -85,23 +85,23 @@ contract VestingTeam is
 
         phase.startTime = _startTime;
         phase.endTime = _endTime;
+        phase.duration = vestingEnd - _endTime;
         phase.cliff = _cliff;
         phase.totalReleasedTokens = 0;
-
-        rewardToken.transferFrom(msg.sender, address(this), _initialBalance);
     }
 
-    function allocateTokens(address[] memory _teamMembers) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function allocateTokens(uint256 _tokensAmount, address[] memory _teamMembers) external onlyRole(DEFAULT_ADMIN_ROLE) {
 
         uint256 numberOfMembers = _teamMembers.length;
-        uint256 tokensAmount = rewardToken.balanceOf(address(this));
-        uint256 tokensPerMember = tokensAmount / numberOfMembers;
+        uint256 tokensPerMember = _tokensAmount / numberOfMembers;
 
         for (uint i = 0; i < numberOfMembers; i++) {
             Investor storage investor = investors[_teamMembers[i]];
             investor.balance += tokensPerMember;
             investor.total += tokensPerMember;
         }
+
+        rewardToken.transferFrom(msg.sender, address(this), _tokensAmount);
     }
 
     function release() external whenNotPaused {
@@ -138,8 +138,13 @@ contract VestingTeam is
         } else if (currentTime >= vestingEnd) {
             return totalBalance;
         } else {
-            uint256 intervals = (currentTime - phase.cliff) / interval;
-            return investor.total * intervals * interval;
+            // uint256 intervals = (currentTime - phase.cliff) / interval;
+            // return (investor.total * intervals * interval) / phase.duration;
+
+            uint256 timeElapsed = currentTime - phase.cliff;
+            uint256 vestingDuration = vestingEnd - phase.cliff;
+            uint256 vested = (totalBalance * timeElapsed) / vestingDuration;
+            return vested;
         }
     }
 
