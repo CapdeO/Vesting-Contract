@@ -9,3 +9,10 @@ contract Argatio is ERC20 {
         _mint(msg.sender, 200_000_000 * 10 ** decimals());
     }
 }
+
+contract DreamJunk is ERC20 {
+
+    constructor() ERC20("Dream Junk", "DRM") {
+        _mint(msg.sender, 800_000_000 * 10 ** decimals());
+    }
+}

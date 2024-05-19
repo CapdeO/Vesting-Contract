@@ -1,14 +1,21 @@
 # Vesting Contract
 
- #N |  Month  |  Amount  | Price |   Max    | Vesting | Block Start |  Block End  |    StartTime      |     EndTime         |
-----|---------|----------|-------|----------|---------|-------------|-------------|-------------------|---------------------|
- 0  |  March  |8.000.000 | $0.040| 400.000  | 24m     | 1709251200  |  1711929599 |  1 March 0:00:00  |  31 March 23:59:59  |
- 1  |  April  |32.000.000| $0.060| 1.600.000| 23m     | 1711929600  |  1714521599 |  1 April 0:00:00  |  30 April 23:59:59  |
- 2  |   May   |6.000.000 | $0.070| 300.000  | 22m     | 1714521600  |  1717199999 |   1 May 0:00:00   |   31 May 23:59:59   |
- 3  |   June  |40.000.000| $0.075| 2.000.000| 21m     | 1717200000  |  1719791999 |   1 June 0:00:00  |   30 June 23:59:59  |
- 4  |   July  |40.000.000| $0.080| 2.000.000| 20m     | 1719792000  |  1722470399 |   1 July 0:00:00  |   31 July 23:59:59  |
- 5  |  August |60.000.000| $0.085| 3.000.000| 19m     | 1722470400  |  1725148799 |  1 August 0:00:00 |  31 August 23:59:59 |
- 6  |September|64.000.000| $0.090| 3.200.000| 18m     | 1725148800  |  1727740799 |1 September 0:00:00|30 September 23:59:59|
- 7  | October |70.000.000| $0.095| 3.500.000| 17m     | 1727740800  |  1730419199 | 1 October 0:00:00 | 31 October 23:59:59 |
+## Vesting
+Un vesting en donde
 
- ## Vesting End: 1775001600 --> Wednesday, 1 April 2026 0:00:00
+## Vesting 2
+Un vesting en donde
+
+## Vesting Affiliate
+Un vesting en donde cualquiera puede establecer su ćodigo de referido y compartirlo con otras personas para que inviertan utilizándolo, y así obtener un porcentaje de comisión de esa inversión.
+- El máximo de veces en las que se obtiene comisión por inversor es TRES.
+- El porcentaje que se obtiene de la primera inversión de un inversor afiliado es TRES (3%).
+- El porcentaje que se obtiene de la segunda inversión de un inversor afiliado es CINCO (5%).
+- El porcentaje que se obtiene de la tercer inversión de un inversor afiliado es SIETE (7%).
+- El total y máximo de porcentaje que se obtiene de esas TRES inversiones es QUINCE (15%).
+- La comisión se toma del capital invertido en la compra (stablecoin), y no de los tokens. Por lo tanto el inversor afiliado se lleva el 100% de tokens correspondientes su inversión.
+
+También existe la posibilidad de invertir ofreciendo un porcentaje de donación para fines de ayuda humanitaria. El porcentaje de donación es a elección, y se suma a la cantidad total de inversión. Ejemplo: inversor quiere comprar $100 y donar un 30%. Total = $130.
+
+## Vesting Team
+Un vesting en donde

@@ -86,7 +86,7 @@ contract VestingTeam is
         phase.startTime = _startTime;
         phase.endTime = _endTime;
         phase.duration = vestingEnd - _endTime;
-        phase.cliff = _cliff;
+        phase.cliff = _endTime + _cliff;
         phase.totalReleasedTokens = 0;
     }
 
@@ -138,13 +138,8 @@ contract VestingTeam is
         } else if (currentTime >= vestingEnd) {
             return totalBalance;
         } else {
-            // uint256 intervals = (currentTime - phase.cliff) / interval;
-            // return (investor.total * intervals * interval) / phase.duration;
-
-            uint256 timeElapsed = currentTime - phase.cliff;
-            uint256 vestingDuration = vestingEnd - phase.cliff;
-            uint256 vested = (totalBalance * timeElapsed) / vestingDuration;
-            return vested;
+            uint256 intervals = (currentTime - phase.cliff) / interval;
+            return (investor.total * intervals * interval) / phase.duration;
         }
     }
 
