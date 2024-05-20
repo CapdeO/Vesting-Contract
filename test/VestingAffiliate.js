@@ -158,7 +158,56 @@ describe("Vesting Contract", () => {
             expect(bobInvestment[0]).to.equal(ethers.parseEther("500"))
             expect(bobInvestment[1]).to.equal(ethers.parseEther("500"))
             expect(bobInvestment[2]).to.equal(0)
+
+            expect(await vesting.affiliateInvestmentCount(alice.address, bob.address)).to.equal(4)
+        });
+
+        it("Donation", async () => {
+            var { vesting, drm, usdt, recUSDT, donation, bob, alice } = await loadFixture(loadTest);
+
+            let amount = ethers.parseEther("8000000")
+            await drm.approve(vesting.target, amount)
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await vesting.createPhase(...phase0)
+            await usdt.transfer(bob.address, ethers.parseUnits("130", 6))
+            await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("130", 6))
+
+            await time.increaseTo(1717200000) // Saturday, 1 June 2024 0:00:00
+
+            await vesting.connect(alice).setReferralCode("aliceCode")
+
+            await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("100", 6), "aliceCode", 30)
+
+            expect(await usdt.balanceOf(donation.address)).to.equal(ethers.parseUnits("30", 6))
+            expect(await usdt.balanceOf(recUSDT)).to.equal(ethers.parseUnits("97", 6))
+            expect(await usdt.balanceOf(alice.address)).to.equal(ethers.parseUnits("3", 6))
+        });
+
+        it("Emit events", async () => {
+            var { vesting, drm, usdt, recUSDT, donation, bob, alice } = await loadFixture(loadTest);
+
+            let amount = ethers.parseEther("8000000")
+            await drm.approve(vesting.target, amount)
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await vesting.createPhase(...phase0)
+            await usdt.transfer(bob.address, ethers.parseUnits("200", 6))
+            await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("200", 6))
+
+            await time.increaseTo(1717200000) // Saturday, 1 June 2024 0:00:00
+
+            await vesting.connect(alice).setReferralCode("aliceCode")
+
+            await expect(vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "", 0))
+                .to.emit(vesting, "BuyTokens").withArgs(0, bob.address, ethers.parseEther("5"), ethers.parseEther("125"))
+
+            await expect(vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "aliceCode", 0))
+                .to.emit(vesting, "BuyTokens").withArgs(0, bob.address, ethers.parseEther("5"), ethers.parseEther("125"))
+                .to.emit(vesting, "ReferralCodeUsed").withArgs("aliceCode", bob.address, 1, ethers.parseUnits("0.15", 6))
+
+            await expect(vesting.connect(bob).invest(usdt.target, ethers.parseUnits("100", 6), "aliceCode", 10))
+                .to.emit(vesting, "BuyTokens").withArgs(0, bob.address, ethers.parseEther("100"), ethers.parseEther("2500"))
+                .to.emit(vesting, "ReferralCodeUsed").withArgs("aliceCode", bob.address, 2, ethers.parseUnits("5", 6))
+                .to.emit(vesting, "Donation").withArgs(bob.address, ethers.parseUnits("10", 6))
         });
     });
-
 });
