@@ -120,6 +120,8 @@ describe("Vesting Contract", () => {
             await time.increaseTo(1717200000) // Saturday, 1 June 2024 0:00:00
 
             await vesting.connect(alice).setReferralCode("aliceCode")
+            expect(await vesting.referralAddress("aliceCode")).to.equal(alice.address)
+            expect(await vesting.referralCode(alice.address)).to.equal("aliceCode")
             await expect(vesting.connect(alice).setReferralCode("aliceCode")).to.revertedWith("Referral code already used.")
             await expect(vesting.connect(alice).setReferralCode("aliceCodee")).to.revertedWith("This address already has a referral code.")
             await expect(vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "aliceCodee", 0)).to.revertedWith("Invalid referral code.")

@@ -56,6 +56,7 @@ contract VestingAffiliate is
 
     mapping(address => bool) public hasReferralCode;
     mapping(string => address) public referralAddress;
+    mapping(address => string) public referralCode;
     mapping(address => mapping(address => uint8)) public affiliateInvestmentCount;
     string[] public referralCodes;
 
@@ -270,6 +271,7 @@ contract VestingAffiliate is
         require(referralAddress[_referralCode] == address(0), "Referral code already used.");
         require(!hasReferralCode[_msgSender()], "This address already has a referral code.");
         referralAddress[_referralCode] = _msgSender();
+        referralCode[_msgSender()] = _referralCode;
         referralCodes.push(_referralCode);
         hasReferralCode[_msgSender()] = true;
     } 
