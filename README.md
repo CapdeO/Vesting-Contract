@@ -2,10 +2,12 @@
 
 ## Vesting
 
+
 ## Vesting 2
+Este contrato envía los pagos de las inversiones a diferentes direcciones dependiendo de la stablecoin utilizada. Las direcciones se guardan en las variables receiverUSDT, receiverUSDC y receiverBUSD, que son seteadas en el constructor. Una actualización de este contrato podría incluir un método para modificar alguna de estas direcciones si es necesario.
 
 ## Vesting Affiliate
-Un vesting en donde cualquiera puede establecer su ćodigo de referido y compartirlo con otras personas para que inviertan utilizándolo, y así obtener un porcentaje de comisión de esa inversión.
+Extensión de Vesting 2 en donde cualquiera puede establecer su ćodigo de referido y compartirlo con otras personas para que inviertan utilizándolo, y así obtener un porcentaje de comisión de esa inversión.
 - El máximo de veces en las que se obtiene comisión por inversor es TRES.
 - El porcentaje que se obtiene de la primera inversión de un inversor afiliado es TRES (3%).
 - El porcentaje que se obtiene de la segunda inversión de un inversor afiliado es CINCO (5%).
