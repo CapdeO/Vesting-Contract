@@ -3,7 +3,8 @@ const { ethers, upgrades } = require("hardhat");
 // Polygon
 // 0xe49A8863cb86f962100767dfD7Dee165E187A571 ARGA
 // 0xcf164e2e423CC7341Da00E103AD345162D30aDe4 PROXY
-// 0x82cf371c60DC372EdEE9C389ce8790827cDc272C IMPL
+// 0x82cf371c60DC372EdEE9C389ce8790827cDc272C IMPL V1
+// 0x72121C78f6c791C02620C80ac3289693f70a4398 IMPL V2
 
 async function ARGA() {
     var contract = await ethers.deployContract("Argatio");

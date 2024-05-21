@@ -64,7 +64,21 @@ async function main() {
     console.log('Phase 3 created.')
 }
 
-main().catch((error) => {
+async function upgrade() {
+    var proxyAddress = '0xcf164e2e423CC7341Da00E103AD345162D30aDe4';
+    // var Contract2 = await ethers.getContractFactory("contracts/Vesting - v2.sol:Vesting");
+    // var contract2 = await upgrades.upgradeProxy(proxyAddress, Contract2);
+
+    var implV2 = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+    console.log('Address implV2: ', implV2);
+
+    await hre.run("verify:verify", {
+        address: implV2,
+        constructorArguments: [],
+    })
+}
+
+upgrade().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
