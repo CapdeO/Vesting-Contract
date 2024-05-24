@@ -1,16 +1,23 @@
 const { ethers, upgrades } = require("hardhat");
 
 // Amoy
-// 0x20cfc5962b1abe4931688ff71de3d5ee053fb283 USDT
-// 0xD1e8372C333158331eDf0edd994270AD8896E0a3 USDC
-// 0x755B7bd472Eb98cb355A6e9c1588c03c19141471 BUSD
-// 0xf88718d191892cde8774dccebc12a024289d96ea DRM
-// 0x29c55A22976288B226c8D55b2E9fa411EB4657C3 Vesting proxy
-// 0x94D323fd50590C49dBbBc563Ca8E4fe331b27ea7 Vesting impl
+// 0x7a6C7a3bab11D57423f9F5690AF6ff38BE2d771f Vesting proxy
+// 0xF2A22fcFa312f91a432fad606937D5Ab17278Dc0 Vesting impl
+
+const testnetDRM = '0xf88718d191892cde8774dccebc12a024289d96ea'
+const testnetUSDT = '0x20cfc5962b1abe4931688ff71de3d5ee053fb283'
+const testnetUSDC = '0xD1e8372C333158331eDf0edd994270AD8896E0a3'
+const testnetBUSD = '0x755B7bd472Eb98cb355A6e9c1588c03c19141471'
 
 // Polygon
 // 0xecF87992f371f72621e70bdFDd07F698e3f9C6cC DRM
 // 
+
+const _owner = '0x792950dB951525c36526383Ce9200e9E540F1a68'
+const _receiverUSDT = '0x0DB7B729f42e485CDac9641F833e5d530922Fef4'
+const _receiverUSDC = '0x7B27567EE121e0e9e69D0372EB17A9A10Ee0af86'
+const _receiverBUSD = '0x59fc182B1836725EeB82874269262C11702563b6'
+const _donation = '0x792950dB951525c36526383Ce9200e9E540F1a68'
 
 async function stablecoin() {
     var contract = await ethers.deployContract("USDC", {gasPrice: '3200000000'});
@@ -43,21 +50,27 @@ async function DRM() {
 }
 
 async function vesting() {
-    // Amoy
-    // let token = '0xf88718d191892cde8774dccebc12a024289d96ea'
-    // let stableTokens = ['0x20cfc5962b1abe4931688ff71de3d5ee053fb283', '0xD1e8372C333158331eDf0edd994270AD8896E0a3', '0x755B7bd472Eb98cb355A6e9c1588c03c19141471']
-    // let owner = '0xDA81E62c2C428bDde5D3271014DbE0cfd3cfeC26'
+
+    let token = testnetDRM
+    let addressUSDT = testnetUSDT
+    let addressUSDC = testnetUSDC
+    let addressBUSD = testnetBUSD
+    let owner = _owner
+    let receiverUSDT = _receiverUSDT
+    let receiverUSDC = _receiverUSDC
+    let receiverBUSD = _receiverBUSD
+    let donation = _donation
 
     // Polygon
-    let token = '0xfA84B0b6d79c0581e4cE19A6548Bd864C200Bf6c'
-    let stableTokens = ['0xc2132D05D31c914a87C6611C10748AEb04B58e8F', '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', '0x9C9e5fD8bbc25984B178FdCE6117Defa39d2db39']
-    let owner = ''
+    // let token = '0xfA84B0b6d79c0581e4cE19A6548Bd864C200Bf6c'
+    // let stableTokens = ['0xc2132D05D31c914a87C6611C10748AEb04B58e8F', '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', '0x9C9e5fD8bbc25984B178FdCE6117Defa39d2db39']
+    // let owner = ''
 
-    var Vesting = await hre.ethers.getContractFactory("Vesting");
+    var Vesting = await hre.ethers.getContractFactory("VestingAffiliate");
 
     var vesting = await upgrades.deployProxy(
         Vesting, 
-        [token, stableTokens, owner],
+        [token, addressUSDT, addressUSDC, addressBUSD, owner, receiverUSDT, receiverUSDC, receiverBUSD, donation],
         {kind: "uups"},
     );
 
@@ -77,7 +90,7 @@ async function vesting() {
     });
 }
 
-DRM().catch((error) => {
+vesting().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
