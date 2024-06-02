@@ -10,14 +10,18 @@ const testnetUSDC = '0xD1e8372C333158331eDf0edd994270AD8896E0a3'
 const testnetBUSD = '0x755B7bd472Eb98cb355A6e9c1588c03c19141471'
 
 // Polygon
-// 0xecF87992f371f72621e70bdFDd07F698e3f9C6cC DRM
-// 
+// 0x14C2455794AC6FA93a5B4d2E19d269d0Ea491BAA Vesting proxy
+// 0x57fFe867AF2913EfCB8500D02DA33Ff4ec891EdF Vesting impl
 
-const _owner = '0x792950dB951525c36526383Ce9200e9E540F1a68'
+const _DRM = '0xecF87992f371f72621e70bdFDd07F698e3f9C6cC'
+const _USDT = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
+const _USDC = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'
+const _BUSD = '0x9C9e5fD8bbc25984B178FdCE6117Defa39d2db39'
+const _owner = '0x4dbac2F163832F3878281854F489dcc8D1B6F328'
 const _receiverUSDT = '0x0DB7B729f42e485CDac9641F833e5d530922Fef4'
 const _receiverUSDC = '0x7B27567EE121e0e9e69D0372EB17A9A10Ee0af86'
 const _receiverBUSD = '0x59fc182B1836725EeB82874269262C11702563b6'
-const _donation = '0x792950dB951525c36526383Ce9200e9E540F1a68'
+const _donation = '0x4dbac2F163832F3878281854F489dcc8D1B6F328'
 
 async function stablecoin() {
     var contract = await ethers.deployContract("USDC", {gasPrice: '3200000000'});
@@ -51,20 +55,15 @@ async function DRM() {
 
 async function vesting() {
 
-    let token = testnetDRM
-    let addressUSDT = testnetUSDT
-    let addressUSDC = testnetUSDC
-    let addressBUSD = testnetBUSD
+    let token = _DRM
+    let addressUSDT = _USDT
+    let addressUSDC = _USDC
+    let addressBUSD = _BUSD
     let owner = _owner
     let receiverUSDT = _receiverUSDT
     let receiverUSDC = _receiverUSDC
     let receiverBUSD = _receiverBUSD
     let donation = _donation
-
-    // Polygon
-    // let token = '0xfA84B0b6d79c0581e4cE19A6548Bd864C200Bf6c'
-    // let stableTokens = ['0xc2132D05D31c914a87C6611C10748AEb04B58e8F', '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', '0x9C9e5fD8bbc25984B178FdCE6117Defa39d2db39']
-    // let owner = ''
 
     var Vesting = await hre.ethers.getContractFactory("VestingAffiliate");
 

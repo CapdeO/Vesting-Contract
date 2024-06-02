@@ -4,9 +4,9 @@ const { ethers, upgrades } = require("hardhat");
 const vestingEnd = 1778630400 // Wednesday, 13 May 2026 0:00:00
 const oneMonth = 2629743
 
-const firstPhase = [1715600974, 1717199999, 0, ethers.parseEther("0.07"),  ethers.parseEther("10000000"),  ethers.parseEther("400000")]
-const secondPhase = [1717200000, 1719791999, 0, ethers.parseEther("0.08"),  ethers.parseEther("8000000"),  ethers.parseEther("600000")]
-const thirdPhase = [1719792000, 1722470399, 0, ethers.parseEther("0.11"),   ethers.parseEther("5000000"),  ethers.parseEther("800000")]
+const firstPhase = [1715600974, 1717199999, 0, ethers.parseEther("0.07"), ethers.parseEther("10000000"), ethers.parseEther("400000")]
+const secondPhase = [1717200000, 1719791999, 0, ethers.parseEther("0.08"), ethers.parseEther("8000000"), ethers.parseEther("600000")]
+const thirdPhase = [1719792000, 1722470399, 0, ethers.parseEther("0.11"), ethers.parseEther("5000000"), ethers.parseEther("800000")]
 
 const wait = (ms) => {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -78,7 +78,34 @@ async function upgrade() {
     })
 }
 
-upgrade().catch((error) => {
+async function teamVesting() {
+
+    const vesting = await hre.ethers.getContractAt(
+        "contracts/VestingTeam.sol:VestingTeam",
+        "0x9F06b7aA81c6B1C54063BB7C137997CE0A8310c9"
+    )
+
+    const vestingEnd = 1778630400 // Wednesday, 13 May 2026 0:00:00
+    const oneMonth = 2629743 // In secs
+    const phaseStart = 1744502400 // Sunday, 13 April 2025 0:00:00
+    const phaseEnd = 1747094400 // Tuesday, 13 May 2025 0:00:00
+
+    console.log('Setting team vesting params..')
+
+    const setTeamVestingParamsTx = await vesting.setVestingParams(vestingEnd, oneMonth)
+    await setTeamVestingParamsTx.wait()
+    await wait(30000)
+    console.log('Params ready.')
+
+    console.log('Creating phase..')
+
+    const createPhaseTeamVestingParamsTx = await vesting.createPhase(phaseStart, phaseEnd, 0)
+    await createPhaseTeamVestingParamsTx.wait()
+    await wait(30000)
+    console.log('Phase created.')
+}
+
+teamVesting().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

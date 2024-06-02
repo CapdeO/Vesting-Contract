@@ -10,14 +10,21 @@ const { ethers, upgrades } = require("hardhat");
 
 // Polygon
 // 0xecF87992f371f72621e70bdFDd07F698e3f9C6cC DRM
-//
+// 0x14C2455794AC6FA93a5B4d2E19d269d0Ea491BAA Vesting proxy
+// 0x57fFe867AF2913EfCB8500D02DA33Ff4ec891EdF Vesting impl
 
 // TEST PARAMS
-const vestingEnd = 1782863999 // Tuesday, 30 June 2026 23:59:59
+// const vestingEnd = 1782863999 // Tuesday, 30 June 2026 23:59:59
+// const oneMonth = 2629743
+
+const vestingEnd = 1785542399 // Friday, 31 July 2026 23:59:59
 const oneMonth = 2629743
 
-const firstPhase = [1714521600, 1717199999, 0, ethers.parseEther("0.04"),   ethers.parseEther("8000000"),  ethers.parseEther("400000")]
-const secondPhase = [1714521600, 1717200000, 0, ethers.parseEther("0.06"),   ethers.parseEther("32000000"),  ethers.parseEther("1600000")]
+// const firstPhase = [1714521600, 1717199999, 0, ethers.parseEther("0.04"),   ethers.parseEther("8000000"),  ethers.parseEther("400000")]
+// const secondPhase = [1717200000, 1719791999, 0, ethers.parseEther("0.06"),   ethers.parseEther("32000000"),  ethers.parseEther("1600000")]
+
+const firstPhase = [1717200000, 1719791999, 0, ethers.parseEther("0.04"),   ethers.parseEther("8000000"),  ethers.parseEther("400000")]
+const secondPhase = [1717200000, 1719791999, 0, ethers.parseEther("0.06"),   ethers.parseEther("32000000"),  ethers.parseEther("1600000")]
 
 const wait = (ms) => {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -27,31 +34,31 @@ async function main() {
 
     const vesting = await hre.ethers.getContractAt(
         "contracts/VestingAffiliate.sol:VestingAffiliate",
-        "0x7a6C7a3bab11D57423f9F5690AF6ff38BE2d771f"
+        "0x14C2455794AC6FA93a5B4d2E19d269d0Ea491BAA"
     )
 
     const dreamJunk = await hre.ethers.getContractAt(
         "DreamJunk",
-        "0xf88718d191892cde8774dccebc12a024289d96ea"
+        "0xecF87992f371f72621e70bdFDd07F698e3f9C6cC"
     )
 
-    // console.log('Establishing vesting parameters...')
-    // const setVestingParamsTransaction = await vesting.setVestingParams(
-    //     vestingEnd,
-    //     oneMonth
-    // );
-    // await setVestingParamsTransaction.wait()
-    // await wait(30000);
-    // console.log('Vesting parameters ready.')
+    console.log('Establishing vesting parameters...')
+    const setVestingParamsTransaction = await vesting.setVestingParams(
+        vestingEnd,
+        oneMonth
+    );
+    await setVestingParamsTransaction.wait()
+    await wait(30000);
+    console.log('Vesting parameters ready.')
 
-    // const end = await vesting.vestingEnd()
-    // console.log(end)
+    const end = await vesting.vestingEnd()
+    console.log(`Vesting end --> ${end}`)
 
-    // console.log('Approving DJ...')
-    // const approveTransaction = await dreamJunk.approve(vesting.target, firstPhase[4])
-    // await approveTransaction.wait()
-    // await wait(30000)
-    // console.log('Approval ready.')
+    console.log('Approving DRM...')
+    const approveTransaction = await dreamJunk.approve(vesting.target, firstPhase[4])
+    await approveTransaction.wait()
+    await wait(30000)
+    console.log('Approval ready.')
 
     await wait(20000);
     console.log('Creating phase...')
@@ -60,12 +67,8 @@ async function main() {
     await wait(30000)
     console.log('Phase created.')
 
-    const end = await dreamJunk.balanceOf('0x7a6C7a3bab11D57423f9F5690AF6ff38BE2d771f')
-    console.log(end)
-
     const phase = await vesting.getCurrentPhaseNumber()
-    console.log(phase)
-
+    console.log(`Current phase --> ${phase}`)
 }
 
 main().catch((error) => {
