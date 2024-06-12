@@ -12,6 +12,9 @@ const { ethers, upgrades } = require("hardhat");
 // 0x9F06b7aA81c6B1C54063BB7C137997CE0A8310c9 PROXY
 // 0x41DE702756c7dCE407331feF870126D9f96F7119 IMPL V1
 
+// -----------------> CDxARGA
+// 0xCD49F9cC9C1aE607fB94DbD8B629BBa977b8Bf9f
+
 async function ARGA() {
     var contract = await ethers.deployContract("Argatio");
     console.log(`Address del contrato ${await contract.getAddress()}`)
@@ -89,7 +92,27 @@ async function teamVesting() {
     });
 }
 
-teamVesting().catch((error) => {
+async function CDxARGA() {
+
+    const args = [
+        '0x86Dcf0116FC6A2e6854e0277054F1E06e38A796e',
+        '0xe49A8863cb86f962100767dfD7Dee165E187A571'
+    ]
+
+    var contract = await ethers.deployContract("TokenExchange", args);
+    console.log(`Address del contrato ${await contract.getAddress()}`)
+
+    var res = await contract.waitForDeployment();
+    await res.deploymentTransaction().wait(15);
+
+    await hre.run("verify:verify", {
+        address: await contract.getAddress(),
+        constructorArguments: [],
+        contract: "contracts/CDxARGA.sol:TokenExchange"
+    });
+}
+
+CDxARGA().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
