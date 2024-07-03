@@ -110,6 +110,8 @@ async function CDxARGA() {
         constructorArguments: [],
         contract: "contracts/CDxARGA.sol:TokenExchange"
     });
+
+    // npx hardhat verify --contract contracts/CDxARGA.sol:TokenExchange 0xCD49F9cC9C1aE607fB94DbD8B629BBa977b8Bf9f --network polygon '0x86Dcf0116FC6A2e6854e0277054F1E06e38A796e' '0xe49A8863cb86f962100767dfD7Dee165E187A571'
 }
 
 CDxARGA().catch((error) => {

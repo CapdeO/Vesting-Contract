@@ -3,8 +3,8 @@ var { expect } = require("chai");
 var { ethers, upgrades } = require("hardhat");
 var { time } = require("@nomicfoundation/hardhat-network-helpers");
 
-// Saturday, 1 June 2024 0:00:00 --> Sunday, 30 June 2024 23:59:59
-const phase0 = [1717200000, 1719791999, 0, ethers.parseEther("0.04"), ethers.parseEther("8000000"), ethers.parseEther("400000")]
+// 	Monday, 1 July 2024 0:00:00 --> Wednesday, 31 July 2024 23:59:59
+const phase0 = [1719792000, 1722470399, 0, ethers.parseEther("0.04"), ethers.parseEther("8000000"), ethers.parseEther("400000")]
 
 // const phase1 = [1711929600, 1714521599, 0, ethers.parseEther("0.06"),  ethers.parseEther("32000000"), ethers.parseEther("1600000")]
 // const phase2 = [1714521600, 1717199999, 0, ethers.parseEther("0.07"),   ethers.parseEther("6000000"),  ethers.parseEther("300000")]
@@ -14,7 +14,7 @@ const phase0 = [1717200000, 1719791999, 0, ethers.parseEther("0.04"), ethers.par
 // const phase6 = [1725148800, 1727740799, 0, ethers.parseEther("0.09"),  ethers.parseEther("64000000"), ethers.parseEther("3200000")]
 // const phase7 = [1727740800, 1730419199, 0, ethers.parseEther("0.095"), ethers.parseEther("70000000"), ethers.parseEther("3500000")]
 
-const vestingEnd = 1782864000 // Wednesday, 1 July 2026 0:00:00
+const vestingEnd = 1785542400 // Saturday, 1 August 2026 0:00:00
 const oneMonth = 2629743 // In secs
 
 function toNormal(_number) {
@@ -96,7 +96,7 @@ describe("Vesting Contract", () => {
             await vesting.setVestingParams(vestingEnd, oneMonth)
             await vesting.createPhase(...phase0)
 
-            await time.increaseTo(1717200000) // Saturday, 1 June 2024 0:00:00
+            // await time.increaseTo(1719792000) // Monday, 1 July 2024 0:00:00
 
             await vesting.invest(usdt.target, ethers.parseUnits("5", 6), "", 0)
             await vesting.invest(usdc.target, ethers.parseUnits("5", 6), "", 0)
@@ -117,7 +117,7 @@ describe("Vesting Contract", () => {
             await usdt.transfer(bob.address, ethers.parseUnits("100", 6))
             await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("100", 6))
 
-            await time.increaseTo(1717200000) // Saturday, 1 June 2024 0:00:00
+            // await time.increaseTo(1719792000) // Monday, 1 July 2024 0:00:00
 
             await vesting.connect(alice).setReferralCode("aliceCode")
             expect(await vesting.referralAddress("aliceCode")).to.equal(alice.address)
@@ -174,7 +174,7 @@ describe("Vesting Contract", () => {
             await usdt.transfer(bob.address, ethers.parseUnits("130", 6))
             await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("130", 6))
 
-            await time.increaseTo(1717200000) // Saturday, 1 June 2024 0:00:00
+            // await time.increaseTo(1719792000) // Monday, 1 July 2024 0:00:00
 
             await vesting.connect(alice).setReferralCode("aliceCode")
 
@@ -195,7 +195,7 @@ describe("Vesting Contract", () => {
             await usdt.transfer(bob.address, ethers.parseUnits("200", 6))
             await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("200", 6))
 
-            await time.increaseTo(1717200000) // Saturday, 1 June 2024 0:00:00
+            // await time.increaseTo(1719792000) // Monday, 1 July 2024 0:00:00
 
             await vesting.connect(alice).setReferralCode("aliceCode")
 
@@ -211,5 +211,32 @@ describe("Vesting Contract", () => {
                 .to.emit(vesting, "ReferralCodeUsed").withArgs("aliceCode", bob.address, 2, ethers.parseUnits("5", 6))
                 .to.emit(vesting, "Donation").withArgs(bob.address, ethers.parseUnits("10", 6))
         });
+    });
+
+    describe("V2", () => {
+        it("setPhaseDates", async () => {
+            var { vesting, drm, usdt, usdc, busd, recUSDT, recUSDC, recBUSD, bob, alice } = await loadFixture(loadTest);
+
+            let amount = ethers.parseEther("8000000")
+            await drm.approve(vesting.target, amount)
+            await usdt.approve(vesting.target, ethers.parseUnits("10", 6))
+
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await vesting.createPhase(...phase0)
+
+            // await time.increaseTo(1719792000) // Monday, 1 July 2024 0:00:00
+
+            await vesting.invest(usdt.target, ethers.parseUnits("5", 6), "", 0)
+
+            await vesting.setPhaseDates(0, 1722470400, 1725148799)
+
+            await expect(vesting.invest(usdt.target, ethers.parseUnits("5", 6), "", 0)).to.revertedWith("No active vesting phase for the current time.")
+
+            await time.increaseTo(1722470400)
+
+            await usdt.approve(vesting.target, ethers.parseUnits("10", 6))
+        });
+
+
     });
 });

@@ -267,6 +267,11 @@ contract VestingAffiliate is
         interval = _interval;
     }
 
+    function setPhaseDates(uint8 _phaseNumber, uint256 _startTime, uint256 _endTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        phases[_phaseNumber].startTime = _startTime;
+        phases[_phaseNumber].endTime = _endTime;
+    }
+
     function setReferralCode(string memory _referralCode) external whenNotPaused {
         require(referralAddress[_referralCode] == address(0), "Referral code already used.");
         require(!hasReferralCode[_msgSender()], "This address already has a referral code.");
