@@ -234,7 +234,7 @@ describe("Vesting Contract", () => {
 
             await time.increaseTo(1722470400)
 
-            await usdt.approve(vesting.target, ethers.parseUnits("10", 6))
+            await vesting.invest(usdt.target, ethers.parseUnits("5", 6), "", 0)
         });
 
 
