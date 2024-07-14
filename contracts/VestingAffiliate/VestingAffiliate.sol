@@ -49,15 +49,15 @@ contract VestingAffiliate is
     address public addressUSDC;
     address public addressBUSD;
     address public owner;
-    address public receiverUSDT;
-    address public receiverUSDC;
-    address public receiverBUSD;
     address public donationAddress;
+
+    mapping(address => uint8) public affiliateLevel;
+    mapping(address => uint) public totalInvestment;
+    mapping(address => uint) public affiliateUsedCounter;
 
     mapping(address => bool) public hasReferralCode;
     mapping(string => address) public referralAddress;
     mapping(address => string) public referralCode;
-    mapping(address => mapping(address => uint8)) public affiliateInvestmentCount;
     string[] public referralCodes;
 
     /**************************** EVENTS  ****************************/
@@ -72,7 +72,6 @@ contract VestingAffiliate is
     event ReferralCodeUsed(
         string indexed _referralCode,
         address _investor,
-        uint8 _investmentCount,
         uint256 _investmentAmount
     );
 
@@ -96,9 +95,6 @@ contract VestingAffiliate is
         address _addressUSDC,
         address _addressBUSD,
         address _owner,
-        address _receiverUSDT,
-        address _receiverUSDC,
-        address _receiverBUSD,
         address _donationAddress
     ) public initializer {
         __Pausable_init();
@@ -122,9 +118,6 @@ contract VestingAffiliate is
         addressBUSD = _addressBUSD;
         tokensSupported[addressBUSD] = true;
 
-        receiverUSDT = _receiverUSDT;
-        receiverUSDC = _receiverUSDC;
-        receiverBUSD = _receiverBUSD;
         donationAddress = _donationAddress;
     }
 
@@ -164,12 +157,21 @@ contract VestingAffiliate is
     function invest(address _stableAddress, uint256 _stableAmount, string memory _referralCode, uint8 _donationPercent) external whenNotPaused onlyExisting {
         require(tokensSupported[_stableAddress], "Stable token not supported for purchase.");
 
-        address stableReceiver = getStableReceiver(_stableAddress);
-
         uint8 phaseNumber = getCurrentPhaseNumber();
         Phase storage currentPhase = phases[phaseNumber];
 
         uint256 adjustedAmount = _stableAmount * 10 ** (18 - IERC20Metadata(_stableAddress).decimals());
+
+        totalInvestment[_msgSender()] += adjustedAmount;
+
+        if (totalInvestment[_msgSender()] >= 225 * 1 ether && affiliateLevel[_msgSender()] < 3) {
+            affiliateLevel[_msgSender()] = 3;
+        } else if (totalInvestment[_msgSender()] >= 175 * 1 ether && affiliateLevel[_msgSender()] < 2) {
+            affiliateLevel[_msgSender()] = 2;
+        } else if (totalInvestment[_msgSender()] >= 100 * 1 ether && affiliateLevel[_msgSender()] < 1) {
+            affiliateLevel[_msgSender()] = 1;
+        }
+
         uint256 tokens = (adjustedAmount * 1 ether) / currentPhase.tokenPrice;
 
         require(tokens <= currentPhase.balance, "There are not enough tokens to buy.");
@@ -181,28 +183,32 @@ contract VestingAffiliate is
         investor.balance += tokens;
         investor.total += tokens;
         currentPhase.balance -= tokens;
-        currentPhase.accumulatedCapital += _stableAmount;
+        currentPhase.accumulatedCapital += adjustedAmount;
 
         if (keccak256(abi.encodePacked(_referralCode)) == keccak256(abi.encodePacked(""))) {
-            require(IERC20(_stableAddress).transferFrom(_msgSender(), stableReceiver, _stableAmount), "Stable transfer error.");
+            require(IERC20(_stableAddress).transferFrom(_msgSender(), owner, _stableAmount), "Stable transfer error.");
         } else {
             require(referralAddress[_referralCode] != address(0), "Invalid referral code.");
 
-            uint8 affiliateCount = affiliateInvestmentCount[referralAddress[_referralCode]][_msgSender()];
-            uint8 commissionPercentage = getCommissionPercentage(affiliateCount);
+            uint8 commissionPercentage = getCommissionPercentage(affiliateLevel[referralAddress[_referralCode]]);
+
+            affiliateUsedCounter[referralAddress[_referralCode]]++;
+
+            if (affiliateUsedCounter[referralAddress[_referralCode]] >= 20 && affiliateLevel[referralAddress[_referralCode]] < 3) {
+                affiliateLevel[referralAddress[_referralCode]] = 3;
+            } else if (affiliateUsedCounter[referralAddress[_referralCode]] >= 10 && affiliateLevel[referralAddress[_referralCode]] < 2) {
+                affiliateLevel[referralAddress[_referralCode]] = 2;
+            }
 
             uint256 influencerAmount = _stableAmount * commissionPercentage / 100;
-            require(IERC20(_stableAddress).transferFrom(_msgSender(), stableReceiver, _stableAmount - influencerAmount), "Stable transfer error.");
+            require(IERC20(_stableAddress).transferFrom(_msgSender(), owner, _stableAmount - influencerAmount), "Stable transfer error.");
             if (influencerAmount > 0) {
                 require(IERC20(_stableAddress).transferFrom(_msgSender(), referralAddress[_referralCode], influencerAmount), "Stable transfer error.");
             }
 
-            affiliateInvestmentCount[referralAddress[_referralCode]][_msgSender()]++;
-
             emit ReferralCodeUsed(
                 _referralCode, 
-                _msgSender(), 
-                affiliateInvestmentCount[referralAddress[_referralCode]][_msgSender()],
+                _msgSender(),
                 influencerAmount
             );
         }
@@ -273,6 +279,7 @@ contract VestingAffiliate is
     }
 
     function setReferralCode(string memory _referralCode) external whenNotPaused {
+        require(affiliateLevel[_msgSender()] > 0, "User without affiliate level.");
         require(referralAddress[_referralCode] == address(0), "Referral code already used.");
         require(!hasReferralCode[_msgSender()], "This address already has a referral code.");
         referralAddress[_referralCode] = _msgSender();
@@ -315,18 +322,6 @@ contract VestingAffiliate is
         return phases.length;
     }
 
-    function getStableReceiver(address _stableAddress) internal view returns(address) {
-        if (_stableAddress == addressUSDT) {
-            return receiverUSDT;
-        } else if (_stableAddress == addressUSDC) {
-            return receiverUSDC;
-        } else if (_stableAddress == addressBUSD) {
-            return receiverBUSD;
-        } else {
-            revert("Stable address not supported.");
-        }
-    }
-
     function getPhases() external view onlyExisting returns(Phase[] memory) {
         return phases;
     }
@@ -356,15 +351,15 @@ contract VestingAffiliate is
         return userReleasableAmounts;
     }
 
-    function getCommissionPercentage(uint8 _count) internal pure returns (uint8) {
-        if (_count == 0) {
-            return 3;
-        } else if (_count == 1) {
-            return 5;
-        } else if (_count == 2) {
-            return 7;
-        } else {
+    function getCommissionPercentage(uint8 _level) internal pure returns (uint8) {
+        if (_level == 0) {
             return 0;
+        } else if (_level == 1) {
+            return 3;
+        } else if (_level == 2) {
+            return 5;
+        } else {
+            return 7;
         }
     }
 
