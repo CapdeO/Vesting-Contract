@@ -39,6 +39,18 @@ contract VestingAffiliate is
         uint256 released;
     }
 
+    struct Affiliate {
+        uint8 level;
+        uint256 totalInvestment;
+        uint256 totalProfit;
+        uint256 codeUsedCounter;
+        bool hasReferralCode;
+        string referralCode;
+        bool banned;
+        bool freezed;
+        uint256 unbanTime;
+    }
+
     uint256 public vestingEnd;
     uint256 public interval;
     IERC20 public rewardToken;
@@ -51,13 +63,8 @@ contract VestingAffiliate is
     address public owner;
     address public donationAddress;
 
-    mapping(address => uint8) public affiliateLevel;
-    mapping(address => uint) public totalInvestment;
-    mapping(address => uint) public affiliateUsedCounter;
-
-    mapping(address => bool) public hasReferralCode;
+    mapping(address => Affiliate) public affiliates;
     mapping(string => address) public referralAddress;
-    mapping(address => string) public referralCode;
     string[] public referralCodes;
 
     /**************************** EVENTS  ****************************/
@@ -162,14 +169,18 @@ contract VestingAffiliate is
 
         uint256 adjustedAmount = _stableAmount * 10 ** (18 - IERC20Metadata(_stableAddress).decimals());
 
-        totalInvestment[_msgSender()] += adjustedAmount;
+        Affiliate storage affiliate = affiliates[_msgSender()];
 
-        if (totalInvestment[_msgSender()] >= 225 * 1 ether && affiliateLevel[_msgSender()] < 3) {
-            affiliateLevel[_msgSender()] = 3;
-        } else if (totalInvestment[_msgSender()] >= 175 * 1 ether && affiliateLevel[_msgSender()] < 2) {
-            affiliateLevel[_msgSender()] = 2;
-        } else if (totalInvestment[_msgSender()] >= 100 * 1 ether && affiliateLevel[_msgSender()] < 1) {
-            affiliateLevel[_msgSender()] = 1;
+        affiliate.totalInvestment += adjustedAmount;
+
+        if (!affiliate.freezed) {
+            if (affiliate.totalInvestment >= 500 * 1 ether && affiliate.level < 3) {
+                affiliate.level = 3;
+            } else if (affiliate.totalInvestment >= 250 * 1 ether && affiliate.level < 2) {
+                affiliate.level = 2;
+            } else if (affiliate.totalInvestment >= 100 * 1 ether && affiliate.level < 1) {
+                affiliate.level = 1;
+            }
         }
 
         uint256 tokens = (adjustedAmount * 1 ether) / currentPhase.tokenPrice;
@@ -188,22 +199,28 @@ contract VestingAffiliate is
         if (keccak256(abi.encodePacked(_referralCode)) == keccak256(abi.encodePacked(""))) {
             require(IERC20(_stableAddress).transferFrom(_msgSender(), owner, _stableAmount), "Stable transfer error.");
         } else {
-            require(referralAddress[_referralCode] != address(0), "Invalid referral code.");
+            address _referralAddress = referralAddress[_referralCode];
+            Affiliate storage referral = affiliates[_referralAddress];
 
-            uint8 commissionPercentage = getCommissionPercentage(affiliateLevel[referralAddress[_referralCode]]);
+            require(_referralAddress != address(0), "Invalid referral code.");
 
-            affiliateUsedCounter[referralAddress[_referralCode]]++;
+            uint8 commissionPercentage = getCommissionPercentage(_referralAddress);
 
-            if (affiliateUsedCounter[referralAddress[_referralCode]] >= 20 && affiliateLevel[referralAddress[_referralCode]] < 3) {
-                affiliateLevel[referralAddress[_referralCode]] = 3;
-            } else if (affiliateUsedCounter[referralAddress[_referralCode]] >= 10 && affiliateLevel[referralAddress[_referralCode]] < 2) {
-                affiliateLevel[referralAddress[_referralCode]] = 2;
+            referral.codeUsedCounter++;
+
+            if (!referral.freezed) {
+                if (referral.codeUsedCounter >= 20 && referral.level < 3) {
+                    referral.level = 3;
+                } else if (referral.codeUsedCounter >= 10 && referral.level < 2) {
+                    referral.level = 2;
+                }
             }
 
             uint256 influencerAmount = _stableAmount * commissionPercentage / 100;
             require(IERC20(_stableAddress).transferFrom(_msgSender(), owner, _stableAmount - influencerAmount), "Stable transfer error.");
             if (influencerAmount > 0) {
-                require(IERC20(_stableAddress).transferFrom(_msgSender(), referralAddress[_referralCode], influencerAmount), "Stable transfer error.");
+                require(IERC20(_stableAddress).transferFrom(_msgSender(), _referralAddress, influencerAmount), "Stable transfer error.");
+                referral.totalProfit += influencerAmount;
             }
 
             emit ReferralCodeUsed(
@@ -279,14 +296,36 @@ contract VestingAffiliate is
     }
 
     function setReferralCode(string memory _referralCode) external whenNotPaused {
-        require(affiliateLevel[_msgSender()] > 0, "User without affiliate level.");
+        Affiliate storage affiliate = affiliates[_msgSender()];
+
+        require(affiliate.level > 0, "User without affiliate level.");
         require(referralAddress[_referralCode] == address(0), "Referral code already used.");
-        require(!hasReferralCode[_msgSender()], "This address already has a referral code.");
+        require(!affiliate.hasReferralCode, "This address already has a referral code.");
         referralAddress[_referralCode] = _msgSender();
-        referralCode[_msgSender()] = _referralCode;
+        affiliate.referralCode = _referralCode;
         referralCodes.push(_referralCode);
-        hasReferralCode[_msgSender()] = true;
-    } 
+        affiliate.hasReferralCode = true;
+    }
+
+    function setLevel(address _affiliate, uint8 _level) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_level <= 3, "The affiliate level can be up to 3.");
+        affiliates[_affiliate].level = _level;
+        affiliates[_affiliate].freezed = true;
+    }
+
+    function unFreeze(address _affiliate) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        affiliates[_affiliate].freezed = false;
+    }
+
+    function banAffiliate(address _affiliate, uint256 _unbanTime) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        Affiliate storage affiliate = affiliates[_affiliate];
+        affiliate.banned = true;
+        affiliate.unbanTime = block.timestamp + _unbanTime;
+    }
+
+    function unbanAffiliate(address _affiliate) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        affiliates[_affiliate].banned = false;
+    }
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
@@ -351,7 +390,25 @@ contract VestingAffiliate is
         return userReleasableAmounts;
     }
 
-    function getCommissionPercentage(uint8 _level) internal pure returns (uint8) {
+    function getAffiliatedList() external view onlyExisting returns (Affiliate[] memory) {
+        Affiliate[] memory affiliatesData = new Affiliate[](referralCodes.length);
+
+        for (uint8 i = 0; i < referralCodes.length; i++) {
+            address affiliateAddress = referralAddress[referralCodes[i]];
+            affiliatesData[i] = affiliates[affiliateAddress];
+        }
+
+        return affiliatesData;
+    }
+
+    function getCommissionPercentage(address _referralAddress) internal view returns (uint8) {
+
+        if (affiliates[_referralAddress].banned) {
+            return 0;
+        }
+
+        uint8 _level = affiliates[_referralAddress].level;
+
         if (_level == 0) {
             return 0;
         } else if (_level == 1) {
