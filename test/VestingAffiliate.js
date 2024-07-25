@@ -81,7 +81,7 @@ describe("Vesting Contract", () => {
     });
 
     describe("Invest", () => {
-        it("Owner receive & totalInvestment mapping", async () => {
+        it("Owner receive & totalInvestment struct", async () => {
             var { vesting, drm, usdt, usdc, busd, owner, race, bob, alice } = await loadFixture(loadTest);
 
             let amount = ethers.parseEther("8000000")
@@ -93,14 +93,20 @@ describe("Vesting Contract", () => {
             await vesting.setVestingParams(vestingEnd, oneMonth)
             await vesting.createPhase(...phase0)
 
-            await vesting.invest(usdt.target, ethers.parseUnits("5", 6), "", 0)
+            expect(await vesting.invest(usdt.target, ethers.parseUnits("5", 6), "", 0))
+                .to.emit(vesting, "BuyTokens")
+                .withArgs(0, owner.address, ethers.parseEther("5"), ethers.parseEther("125"))
             await vesting.invest(usdc.target, ethers.parseUnits("5", 6), "", 0)
             await vesting.invest(busd.target, ethers.parseUnits("5", 18), "", 0)
 
             expect(await usdt.balanceOf(race)).to.equal(ethers.parseUnits("5", 6))
             expect(await usdc.balanceOf(race)).to.equal(ethers.parseUnits("5", 6))
             expect(await busd.balanceOf(race)).to.equal(ethers.parseUnits("5", 18))
-            expect(await vesting.totalInvestment(owner)).to.equal(ethers.parseEther("15"))
+            expect((await vesting.affiliates(owner)).totalInvestment).to.equal(ethers.parseEther("15"))
+
+            const investor = await vesting.getUserInvestment(owner, 0)
+
+            expect(investor[0]).to.equal(ethers.parseEther("375"))
         });
 
         it("Afilliate level 1", async () => {
@@ -121,9 +127,18 @@ describe("Vesting Contract", () => {
             await expect(vesting.connect(bob).setReferralCode("bobCode")).to.revertedWith("User without affiliate level.")
             await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("50", 6), "", 0)
 
+            expect((await vesting.affiliates(bob))[0]).to.equal(1)
+            expect((await vesting.affiliates(bob))[1]).to.equal(ethers.parseEther("100"))
+            expect((await vesting.affiliates(bob))[4]).to.equal(false)
             await vesting.connect(bob).setReferralCode("bobCode")
-            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
+            expect((await vesting.affiliates(bob))[4]).to.equal(true)
+            expect((await vesting.affiliates(bob))[5]).to.equal("bobCode")
+            expect(await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0))
+                .to.emit(vesting, "ReferralCodeUsed")
+                .withArgs("bobCode", alice, ethers.parseEther("3"))
             expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("3", 6))
+            expect((await vesting.affiliates(bob))[2]).to.equal(ethers.parseEther("3"))
+            expect((await vesting.affiliates(bob))[3]).to.equal(1)
         })
 
         it("Afilliate level 2 at 10 referrals", async () => {
@@ -153,10 +168,21 @@ describe("Vesting Contract", () => {
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
 
-            expect(await vesting.affiliateLevel(bob)).to.equal(2)
-            expect(await vesting.affiliateUsedCounter(bob)).to.equal(10)
+            expect((await vesting.affiliates(bob))[0]).to.equal(2)
+            expect((await vesting.affiliates(bob))[3]).to.equal(10)
 
             expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("3", 6))
+            expect((await vesting.affiliates(bob))[2]).to.equal(ethers.parseEther("3"))
+
+            await usdt.transfer(alice, ethers.parseUnits("100", 6))
+            await usdt.connect(alice).approve(vesting.target, ethers.parseUnits("100", 6))
+
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
+
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("8", 6))
+            expect((await vesting.affiliates(bob))[2]).to.equal(ethers.parseEther("8"))
+            expect((await vesting.affiliates(bob))[3]).to.equal(11)
+            expect((await vesting.affiliates(bob))[0]).to.equal(2)
         })
 
         it("Afilliate level 2 at once", async () => {
@@ -167,11 +193,11 @@ describe("Vesting Contract", () => {
             await vesting.setVestingParams(vestingEnd, oneMonth)
             await vesting.createPhase(...phase0)
 
-            await usdt.transfer(bob, ethers.parseUnits("175", 6))
-            await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("175", 6))
-            await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("175", 6), "", 0)
+            await usdt.transfer(bob, ethers.parseUnits("250", 6))
+            await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("250", 6))
+            await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("250", 6), "", 0)
             await vesting.connect(bob).setReferralCode("bobCode")
-            expect(await vesting.affiliateLevel(bob)).to.equal(2)
+            expect((await vesting.affiliates(bob))[0]).to.equal(2)
 
             await usdt.transfer(alice, ethers.parseUnits("100", 6))
             await usdt.connect(alice).approve(vesting.target, ethers.parseUnits("100", 6))
@@ -192,6 +218,7 @@ describe("Vesting Contract", () => {
             await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("100", 6))
             await usdt.connect(alice).approve(vesting.target, ethers.parseUnits("300", 6))
             await usdt.approve(vesting.target, ethers.parseUnits("100", 6))
+            await usdc.approve(vesting.target, ethers.parseUnits("100", 6))
 
             await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("100", 6), "", 0)
             await vesting.connect(bob).setReferralCode("bobCode")
@@ -201,15 +228,17 @@ describe("Vesting Contract", () => {
             await vesting.invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
-            await vesting.invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
+            await vesting.invest(usdc.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
 
-            expect(await vesting.affiliateLevel(bob)).to.equal(2)
-            expect(await vesting.affiliateUsedCounter(bob)).to.equal(10)
-            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("3", 6))
+            expect((await vesting.affiliates(bob))[0]).to.equal(2)
+            expect((await vesting.affiliates(bob))[3]).to.equal(10)
+            expect((await vesting.affiliates(bob))[2]).to.equal(ethers.parseEther("3"))
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("2.7", 6))
+            expect(await usdc.balanceOf(bob)).to.equal(ethers.parseUnits("0.3", 6))
 
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
@@ -222,15 +251,14 @@ describe("Vesting Contract", () => {
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
             await vesting.invest(usdt.target, ethers.parseUnits("10", 6), "bobCode", 0)
 
-            expect(await vesting.affiliateLevel(bob)).to.equal(3)
-            expect(await vesting.affiliateUsedCounter(bob)).to.equal(20)
-            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("8", 6))
+            expect((await vesting.affiliates(bob))[0]).to.equal(3)
+            expect((await vesting.affiliates(bob))[3]).to.equal(20)
 
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
 
-            expect(await vesting.affiliateLevel(bob)).to.equal(3)
-            expect(await vesting.affiliateUsedCounter(bob)).to.equal(21)
-            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("15", 6))
+            expect((await vesting.affiliates(bob))[0]).to.equal(3)
+            expect((await vesting.affiliates(bob))[3]).to.equal(21)
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("14.7", 6))
         })
 
         it("Afilliate level 3 at once", async () => {
@@ -241,11 +269,11 @@ describe("Vesting Contract", () => {
             await vesting.setVestingParams(vestingEnd, oneMonth)
             await vesting.createPhase(...phase0)
 
-            await usdt.transfer(bob, ethers.parseUnits("225", 6))
-            await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("225", 6))
-            await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("225", 6), "", 0)
+            await usdt.transfer(bob, ethers.parseUnits("500", 6))
+            await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("500", 6))
+            await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("500", 6), "", 0)
             await vesting.connect(bob).setReferralCode("bobCode")
-            expect(await vesting.affiliateLevel(bob)).to.equal(3)
+            expect((await vesting.affiliates(bob))[0]).to.equal(3)
 
             await usdt.transfer(alice, ethers.parseUnits("100", 6))
             await usdt.connect(alice).approve(vesting.target, ethers.parseUnits("100", 6))
@@ -273,37 +301,8 @@ describe("Vesting Contract", () => {
             await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
             await expect(vesting.connect(alice).setReferralCode("bobCode")).to.revertedWith("Referral code already used.")
 
-            expect(await usdt.balanceOf(bob.address)).to.equal(ethers.parseUnits("3", 6))
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("3", 6))
             expect(await usdt.balanceOf(race)).to.equal(ethers.parseUnits("197", 6))
-
-            // await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "aliceCode", 0)
-
-            // expectedReferralAmount = expectedReferralAmount + (ethers.parseUnits("5", 6) * BigInt(5) / BigInt(100))
-            // expectedReceiverAmount = expectedReceiverAmount + (ethers.parseUnits("5", 6) * BigInt(95) / BigInt(100))
-
-            // expect(await usdt.balanceOf(alice.address)).to.equal(expectedReferralAmount)
-            // expect(await usdt.balanceOf(recUSDT)).to.equal(expectedReceiverAmount)
-
-            // await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "aliceCode", 0)
-
-            // expectedReferralAmount = expectedReferralAmount + (ethers.parseUnits("5", 6) * BigInt(7) / BigInt(100))
-            // expectedReceiverAmount = expectedReceiverAmount + (ethers.parseUnits("5", 6) * BigInt(93) / BigInt(100))
-
-            // expect(await usdt.balanceOf(alice.address)).to.equal(expectedReferralAmount)
-            // expect(await usdt.balanceOf(recUSDT)).to.equal(expectedReceiverAmount)
-
-            // await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "aliceCode", 0)
-
-            // expectedReceiverAmount = expectedReceiverAmount + ethers.parseUnits("5", 6)
-
-            // expect(await usdt.balanceOf(alice.address)).to.equal(expectedReferralAmount)
-            // expect(await usdt.balanceOf(recUSDT)).to.equal(expectedReceiverAmount)
-
-            // let bobInvestment = await vesting.getUserInvestment(bob.address, 0)
-
-            // expect(bobInvestment[0]).to.equal(ethers.parseEther("500"))
-            // expect(bobInvestment[1]).to.equal(ethers.parseEther("500"))
-            // expect(bobInvestment[2]).to.equal(0)
         });
 
         it("Donation", async () => {
@@ -313,41 +312,67 @@ describe("Vesting Contract", () => {
             await drm.approve(vesting.target, amount)
             await vesting.setVestingParams(vestingEnd, oneMonth)
             await vesting.createPhase(...phase0)
-            await usdt.transfer(bob.address, ethers.parseUnits("130", 6))
+            await usdt.transfer(bob, ethers.parseUnits("130", 6))
             await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("130", 6))
 
-            await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("100", 6), "", 30)
+            expect(await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("100", 6), "", 30))
+                .to.emit(vesting, "Donation")
+                .withArgs(bob, ethers.parseUnits("30", 6))
 
-            expect(await usdt.balanceOf(donation.address)).to.equal(ethers.parseUnits("30", 6))
+            expect(await usdt.balanceOf(donation)).to.equal(ethers.parseUnits("30", 6))
             expect(await usdt.balanceOf(race)).to.equal(ethers.parseUnits("100", 6))
         });
 
-        // it("Emit events", async () => {
-        //     var { vesting, drm, usdt, recUSDT, donation, bob, alice } = await loadFixture(loadTest);
+        it("Ban", async () => {
+            var { vesting, drm, usdt, race, donation, bob, alice } = await loadFixture(loadTest);
 
-        //     let amount = ethers.parseEther("8000000")
-        //     await drm.approve(vesting.target, amount)
-        //     await vesting.setVestingParams(vestingEnd, oneMonth)
-        //     await vesting.createPhase(...phase0)
-        //     await usdt.transfer(bob.address, ethers.parseUnits("200", 6))
-        //     await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("200", 6))
+            let amount = ethers.parseEther("8000000")
+            await drm.approve(vesting.target, amount)
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await vesting.createPhase(...phase0)
+            await usdt.transfer(bob, ethers.parseUnits("100", 6))
+            await usdt.connect(bob).approve(vesting.target, ethers.parseUnits("100", 6))
 
-        //     // await time.increaseTo(1719792000) // Monday, 1 July 2024 0:00:00
+            await vesting.connect(bob).invest(usdt.target, ethers.parseUnits("100", 6), "", 0)
+            await vesting.connect(bob).setReferralCode("bobCode")
 
-        //     await vesting.connect(alice).setReferralCode("aliceCode")
+            await usdt.transfer(alice, ethers.parseUnits("200", 6))
+            await usdt.connect(alice).approve(vesting.target, ethers.parseUnits("200", 6))
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("3", 6))
 
-        //     await expect(vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "", 0))
-        //         .to.emit(vesting, "BuyTokens").withArgs(0, bob.address, ethers.parseEther("5"), ethers.parseEther("125"))
+            await vesting.banAffiliate(bob, 2629743)
 
-        //     await expect(vesting.connect(bob).invest(usdt.target, ethers.parseUnits("5", 6), "aliceCode", 0))
-        //         .to.emit(vesting, "BuyTokens").withArgs(0, bob.address, ethers.parseEther("5"), ethers.parseEther("125"))
-        //         .to.emit(vesting, "ReferralCodeUsed").withArgs("aliceCode", bob.address, 1, ethers.parseUnits("0.15", 6))
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("3", 6))
 
-        //     await expect(vesting.connect(bob).invest(usdt.target, ethers.parseUnits("100", 6), "aliceCode", 10))
-        //         .to.emit(vesting, "BuyTokens").withArgs(0, bob.address, ethers.parseEther("100"), ethers.parseEther("2500"))
-        //         .to.emit(vesting, "ReferralCodeUsed").withArgs("aliceCode", bob.address, 2, ethers.parseUnits("5", 6))
-        //         .to.emit(vesting, "Donation").withArgs(bob.address, ethers.parseUnits("10", 6))
-        // });
+            expect(await usdt.balanceOf(race)).to.equal(ethers.parseUnits("297", 6))
+        });
+
+        it("Set level", async () => {
+            var { vesting, drm, usdt, race, donation, bob, alice } = await loadFixture(loadTest);
+
+            let amount = ethers.parseEther("8000000")
+            await drm.approve(vesting.target, amount)
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await vesting.createPhase(...phase0)
+
+            await vesting.setLevel(bob, 3)
+
+            await vesting.connect(bob).setReferralCode("bobCode")
+
+            await usdt.transfer(alice, ethers.parseUnits("200", 6))
+            await usdt.connect(alice).approve(vesting.target, ethers.parseUnits("200", 6))
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("7", 6))
+
+            await vesting.setLevel(bob, 1)
+
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
+            expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("10", 6))
+
+            expect(await usdt.balanceOf(race)).to.equal(ethers.parseUnits("190", 6))
+        });
     });
 
     // describe("V2", () => {

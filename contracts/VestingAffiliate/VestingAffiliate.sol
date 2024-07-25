@@ -19,6 +19,7 @@ contract VestingAffiliate is
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+    bytes32 public constant BANNER_ROLE = keccak256("BANNER_ROLE");
 
     struct Phase {
         uint256 startTime;
@@ -112,9 +113,11 @@ contract VestingAffiliate is
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _grantRole(PAUSER_ROLE, _msgSender());
         _grantRole(UPGRADER_ROLE, _msgSender());
+        _grantRole(BANNER_ROLE, _msgSender());
         _grantRole(DEFAULT_ADMIN_ROLE, owner);
         _grantRole(PAUSER_ROLE, owner);
         _grantRole(UPGRADER_ROLE, owner);
+        _grantRole(BANNER_ROLE, owner);
 
         rewardToken = IERC20(_token);
 
@@ -220,13 +223,13 @@ contract VestingAffiliate is
             require(IERC20(_stableAddress).transferFrom(_msgSender(), owner, _stableAmount - influencerAmount), "Stable transfer error.");
             if (influencerAmount > 0) {
                 require(IERC20(_stableAddress).transferFrom(_msgSender(), _referralAddress, influencerAmount), "Stable transfer error.");
-                referral.totalProfit += influencerAmount;
+                referral.totalProfit += influencerAmount * 10 ** (18 - IERC20Metadata(_stableAddress).decimals());
             }
 
             emit ReferralCodeUsed(
                 _referralCode, 
                 _msgSender(),
-                influencerAmount
+                influencerAmount * 10 ** (18 - IERC20Metadata(_stableAddress).decimals())
             );
         }
 
@@ -307,23 +310,23 @@ contract VestingAffiliate is
         affiliate.hasReferralCode = true;
     }
 
-    function setLevel(address _affiliate, uint8 _level) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setLevel(address _affiliate, uint8 _level) public onlyRole(BANNER_ROLE) {
         require(_level <= 3, "The affiliate level can be up to 3.");
         affiliates[_affiliate].level = _level;
         affiliates[_affiliate].freezed = true;
     }
 
-    function unFreeze(address _affiliate) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unFreeze(address _affiliate) public onlyRole(BANNER_ROLE) {
         affiliates[_affiliate].freezed = false;
     }
 
-    function banAffiliate(address _affiliate, uint256 _unbanTime) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function banAffiliate(address _affiliate, uint256 _unbanTime) public onlyRole(BANNER_ROLE) {
         Affiliate storage affiliate = affiliates[_affiliate];
         affiliate.banned = true;
         affiliate.unbanTime = block.timestamp + _unbanTime;
     }
 
-    function unbanAffiliate(address _affiliate) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unbanAffiliate(address _affiliate) public onlyRole(BANNER_ROLE) {
         affiliates[_affiliate].banned = false;
     }
 
