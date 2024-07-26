@@ -24,7 +24,7 @@ function toNormal(_number) {
 
 describe("Vesting Contract", () => {
     async function loadTest() {
-        var [owner, alice, bob, carl, race, donation] = await ethers.getSigners()
+        var [owner, alice, bob, carl, clint, race, donation] = await ethers.getSigners()
 
         var USDT = await ethers.getContractFactory("TetherUSD")
         var usdt = await USDT.deploy()
@@ -47,7 +47,7 @@ describe("Vesting Contract", () => {
             ],
             { initializer: 'initialize', kind: 'uups' })
 
-        return { vesting, usdt, usdc, busd, drm, owner, alice, bob, carl, race, donation }
+        return { vesting, usdt, usdc, busd, drm, owner, alice, bob, carl, clint, race, donation }
     }
 
     describe("Deploy", () => {
@@ -347,6 +347,9 @@ describe("Vesting Contract", () => {
             expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("3", 6))
 
             expect(await usdt.balanceOf(race)).to.equal(ethers.parseUnits("297", 6))
+
+            expect((await vesting.affiliates(bob))[6]).to.equal(true)
+            expect((await vesting.affiliates(bob))[8]).to.equal(await time.latest() - 1 + 2629743)
         });
 
         it("Set level", async () => {
@@ -372,6 +375,71 @@ describe("Vesting Contract", () => {
             expect(await usdt.balanceOf(bob)).to.equal(ethers.parseUnits("10", 6))
 
             expect(await usdt.balanceOf(race)).to.equal(ethers.parseUnits("190", 6))
+
+            expect((await vesting.affiliates(bob))[7]).to.equal(true)
+        });
+
+        it("getAffiliatedList", async () => {
+            var { vesting, drm, usdt, busd, usdc, race, donation, bob, alice, carl, clint } = await loadFixture(loadTest);
+
+            let amount = ethers.parseEther("8000000")
+            await drm.approve(vesting.target, amount)
+            await vesting.setVestingParams(vestingEnd, oneMonth)
+            await vesting.createPhase(...phase0)
+
+            await usdt.transfer(alice, ethers.parseUnits("100", 6))
+            await busd.transfer(carl, ethers.parseEther("100"))
+            await usdc.transfer(clint, ethers.parseUnits("100", 6))
+            await usdt.connect(alice).approve(vesting, ethers.parseUnits("100", 6))
+            await busd.connect(carl).approve(vesting, ethers.parseEther("100"))
+            await usdc.connect(clint).approve(vesting, ethers.parseUnits("100", 6))
+
+            await vesting.setLevel(bob, 3)
+            await vesting.connect(bob).setReferralCode("bobCode")
+            await vesting.connect(alice).invest(usdt.target, ethers.parseUnits("100", 6), "bobCode", 0)
+            await vesting.connect(alice).setReferralCode("aliceCode")
+            await vesting.connect(carl).invest(busd.target, ethers.parseEther("50"), "bobCode", 0)
+            await vesting.connect(carl).invest(busd.target, ethers.parseEther("50"), "aliceCode", 0)
+            await vesting.connect(carl).setReferralCode("carlCode")
+            await vesting.connect(clint).invest(usdc.target, ethers.parseUnits("20", 6), "aliceCode", 0)
+            await vesting.connect(clint).invest(usdc.target, ethers.parseUnits("80", 6), "carlCode", 0)
+            await vesting.connect(clint).setReferralCode("clintCode")
+
+            const affiliatedList = await vesting.getAffiliatedList()
+            expect(affiliatedList.length).to.equal(4)
+
+            const bobAffiliatedData = affiliatedList[0]
+            const bobLevel = bobAffiliatedData[0]; expect(bobLevel).to.equal(3)
+            const bobTotalInvest = bobAffiliatedData[1]; expect(bobTotalInvest).to.equal(0)
+            const bobTotalProfit = bobAffiliatedData[2]; expect(bobTotalProfit).to.equal(ethers.parseEther("10.5"))
+            const bobCodeUsedCounter = bobAffiliatedData[3]; expect(bobCodeUsedCounter).to.equal(2)
+            const bobHasReferralCode = bobAffiliatedData[4]; expect(bobHasReferralCode).to.equal(true)
+            const bobReferralCode = bobAffiliatedData[5]; expect(bobReferralCode).to.equal("bobCode")
+            const bobBanned = bobAffiliatedData[6]; expect(bobBanned).to.equal(false)
+            const bobFreezed = bobAffiliatedData[7]; expect(bobFreezed).to.equal(true)
+            const bobUnbanTime = bobAffiliatedData[8]; expect(bobUnbanTime).to.equal(0)
+
+            const aliceAffiliatedData = affiliatedList[1]
+            const aliceLevel = aliceAffiliatedData[0]; expect(aliceLevel).to.equal(1)
+            const aliceTotalInvest = aliceAffiliatedData[1]; expect(aliceTotalInvest).to.equal(ethers.parseEther("100"))
+            const aliceTotalProfit = aliceAffiliatedData[2]; expect(aliceTotalProfit).to.equal(ethers.parseEther("2.1"))
+            const aliceCodeUsedCounter = aliceAffiliatedData[3]; expect(aliceCodeUsedCounter).to.equal(2)
+            const aliceHasReferralCode = aliceAffiliatedData[4]; expect(aliceHasReferralCode).to.equal(true)
+            const aliceReferralCode = aliceAffiliatedData[5]; expect(aliceReferralCode).to.equal("aliceCode")
+            const aliceBanned = aliceAffiliatedData[6]; expect(aliceBanned).to.equal(false)
+            const aliceFreezed = aliceAffiliatedData[7]; expect(aliceFreezed).to.equal(false)
+            const aliceUnbanTime = aliceAffiliatedData[8]; expect(aliceUnbanTime).to.equal(0)
+
+            const carlAffiliatedData = affiliatedList[2]
+            const carlLevel = carlAffiliatedData[0]; expect(carlLevel).to.equal(1)
+            const carlTotalInvest = carlAffiliatedData[1]; expect(carlTotalInvest).to.equal(ethers.parseEther("100"))
+            const carlTotalProfit = carlAffiliatedData[2]; expect(carlTotalProfit).to.equal(ethers.parseEther("2.4"))
+            const carlCodeUsedCounter = carlAffiliatedData[3]; expect(carlCodeUsedCounter).to.equal(1)
+            const carlHasReferralCode = carlAffiliatedData[4]; expect(carlHasReferralCode).to.equal(true)
+            const carlReferralCode = carlAffiliatedData[5]; expect(carlReferralCode).to.equal("carlCode")
+            const carlBanned = carlAffiliatedData[6]; expect(carlBanned).to.equal(false)
+            const carlFreezed = carlAffiliatedData[7]; expect(carlFreezed).to.equal(false)
+            const carlUnbanTime = carlAffiliatedData[8]; expect(carlUnbanTime).to.equal(0)
         });
     });
 
