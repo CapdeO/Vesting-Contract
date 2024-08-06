@@ -19,7 +19,7 @@ contract VestingAffiliate is
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    bytes32 public constant BANNER_ROLE = keccak256("BANNER_ROLE");
+    bytes32 public constant SETTER_ROLE = keccak256("SETTER_ROLE");
 
     struct Phase {
         uint256 startTime;
@@ -41,14 +41,17 @@ contract VestingAffiliate is
     }
 
     struct Affiliate {
-        uint8 level;
+        bool isInfluencer;
         uint256 totalInvestment;
         uint256 totalProfit;
-        uint256 codeUsedCounter;
+        uint256 balanceProfitUSDT;
+        uint256 balanceProfitUSDC;
+        uint256 balanceProfitBUSD;
+        bool hasWithdrawnFirstTime;
+        uint256 totalCodeUsageCounter;
         bool hasReferralCode;
         string referralCode;
         bool banned;
-        bool freezed;
         uint256 unbanTime;
     }
 
@@ -65,6 +68,7 @@ contract VestingAffiliate is
     address public donationAddress;
 
     mapping(address => Affiliate) public affiliates;
+    mapping(address => mapping(address => uint8)) public codeUsageCounter;
     mapping(string => address) public referralAddress;
     string[] public referralCodes;
 
@@ -113,11 +117,11 @@ contract VestingAffiliate is
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _grantRole(PAUSER_ROLE, _msgSender());
         _grantRole(UPGRADER_ROLE, _msgSender());
-        _grantRole(BANNER_ROLE, _msgSender());
+        _grantRole(SETTER_ROLE, _msgSender());
         _grantRole(DEFAULT_ADMIN_ROLE, owner);
         _grantRole(PAUSER_ROLE, owner);
         _grantRole(UPGRADER_ROLE, owner);
-        _grantRole(BANNER_ROLE, owner);
+        _grantRole(SETTER_ROLE, owner);
 
         rewardToken = IERC20(_token);
 
@@ -176,16 +180,6 @@ contract VestingAffiliate is
 
         affiliate.totalInvestment += adjustedAmount;
 
-        if (!affiliate.freezed) {
-            if (affiliate.totalInvestment >= 500 * 1 ether && affiliate.level < 3) {
-                affiliate.level = 3;
-            } else if (affiliate.totalInvestment >= 250 * 1 ether && affiliate.level < 2) {
-                affiliate.level = 2;
-            } else if (affiliate.totalInvestment >= 100 * 1 ether && affiliate.level < 1) {
-                affiliate.level = 1;
-            }
-        }
-
         uint256 tokens = (adjustedAmount * 1 ether) / currentPhase.tokenPrice;
 
         require(tokens <= currentPhase.balance, "There are not enough tokens to buy.");
@@ -209,21 +203,17 @@ contract VestingAffiliate is
 
             uint8 commissionPercentage = getCommissionPercentage(_referralAddress);
 
-            referral.codeUsedCounter++;
-
-            if (!referral.freezed) {
-                if (referral.codeUsedCounter >= 20 && referral.level < 3) {
-                    referral.level = 3;
-                } else if (referral.codeUsedCounter >= 10 && referral.level < 2) {
-                    referral.level = 2;
-                }
-            }
+            referral.totalCodeUsageCounter++;
+            codeUsageCounter[_referralAddress][_msgSender()]++;
 
             uint256 influencerAmount = _stableAmount * commissionPercentage / 100;
+
             require(IERC20(_stableAddress).transferFrom(_msgSender(), owner, _stableAmount - influencerAmount), "Stable transfer error.");
+            
             if (influencerAmount > 0) {
-                require(IERC20(_stableAddress).transferFrom(_msgSender(), _referralAddress, influencerAmount), "Stable transfer error.");
+                require(IERC20(_stableAddress).transferFrom(_msgSender(), address(this), influencerAmount), "Stable transfer error.");
                 referral.totalProfit += influencerAmount * 10 ** (18 - IERC20Metadata(_stableAddress).decimals());
+                setStableBalance(_referralAddress, _stableAddress, influencerAmount);
             }
 
             emit ReferralCodeUsed(
@@ -300,34 +290,87 @@ contract VestingAffiliate is
 
     function setReferralCode(string memory _referralCode) external whenNotPaused {
         Affiliate storage affiliate = affiliates[_msgSender()];
-
-        require(affiliate.level > 0, "User without affiliate level.");
+        
+        if (!affiliate.isInfluencer) {
+            require(affiliate.totalInvestment >= 25 ether, "Minimum investment of 25 dollars required.");
+        }
         require(referralAddress[_referralCode] == address(0), "Referral code already used.");
         require(!affiliate.hasReferralCode, "This address already has a referral code.");
         referralAddress[_referralCode] = _msgSender();
         affiliate.referralCode = _referralCode;
-        referralCodes.push(_referralCode);
         affiliate.hasReferralCode = true;
+        referralCodes.push(_referralCode);
     }
 
-    function setLevel(address _affiliate, uint8 _level) public onlyRole(BANNER_ROLE) {
-        require(_level <= 3, "The affiliate level can be up to 3.");
-        affiliates[_affiliate].level = _level;
-        affiliates[_affiliate].freezed = true;
+    function withdrawProfits() external whenNotPaused {
+        Affiliate storage affiliate = affiliates[_msgSender()];
+        require(affiliate.hasReferralCode, "This address has not a referral code.");
+        require(affiliate.balanceProfitUSDT > 0 && affiliate.balanceProfitUSDC > 0 && affiliate.balanceProfitBUSD > 0, "Address without profit.");
+
+        uint256 commissionPercentage = 1;
+
+        if (!affiliate.hasWithdrawnFirstTime) {
+            require(affiliate.totalProfit >= 500 ether, "Address must accumulate 500 dollars in commissions the first time.");
+            commissionPercentage = 90;
+            affiliate.hasWithdrawnFirstTime = true;
+        }
+            
+        uint256 maxBalance = affiliate.balanceProfitUSDT;
+        address maxBalanceAddress = addressUSDT;
+
+        if (affiliate.balanceProfitUSDC > maxBalance) {
+            maxBalance = affiliate.balanceProfitUSDC;
+            maxBalanceAddress = addressUSDC;
+        }
+
+        if (affiliate.balanceProfitBUSD * 10 ** 12 > maxBalance) {
+            maxBalance = affiliate.balanceProfitBUSD;
+            maxBalanceAddress = addressBUSD;
+        }
+
+        uint256 comission = commissionPercentage * 10 ** IERC20Metadata(maxBalanceAddress).decimals();
+        require(IERC20(maxBalanceAddress).transfer(_msgSender(), maxBalance - comission), "Stable transfer error");
+        require(IERC20(maxBalanceAddress).transfer(owner, comission), "Stable transfer error");
+
+        if (maxBalanceAddress != addressUSDT && affiliate.balanceProfitUSDT > 0) {
+            require(IERC20(addressUSDT).transfer(_msgSender(), affiliate.balanceProfitUSDT), "Stable transfer error");
+        }
+
+        if (maxBalanceAddress != addressUSDC && affiliate.balanceProfitUSDC > 0) {
+            require(IERC20(addressUSDC).transfer(_msgSender(), affiliate.balanceProfitUSDC), "Stable transfer error");
+        }
+
+        if (maxBalanceAddress != addressBUSD && affiliate.balanceProfitBUSD > 0) {
+            require(IERC20(addressBUSD).transfer(_msgSender(), affiliate.balanceProfitBUSD), "Stable transfer error");
+        }
+
+        affiliate.balanceProfitUSDT = 0;
+        affiliate.balanceProfitUSDC = 0;
+        affiliate.balanceProfitBUSD = 0;
     }
 
-    function unFreeze(address _affiliate) public onlyRole(BANNER_ROLE) {
-        affiliates[_affiliate].freezed = false;
+    function setInfluencer(address _influencer) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        affiliates[_influencer].isInfluencer = true;
     }
 
-    function banAffiliate(address _affiliate, uint256 _unbanTime) public onlyRole(BANNER_ROLE) {
+    function banAffiliate(address _affiliate, uint256 _unbanTime) public onlyRole(SETTER_ROLE) {
         Affiliate storage affiliate = affiliates[_affiliate];
         affiliate.banned = true;
         affiliate.unbanTime = block.timestamp + _unbanTime;
     }
 
-    function unbanAffiliate(address _affiliate) public onlyRole(BANNER_ROLE) {
+    function unbanAffiliate(address _affiliate) public onlyRole(SETTER_ROLE) {
         affiliates[_affiliate].banned = false;
+    }
+
+    function setStableBalance(address _affiliate, address _stableAddress, uint256 _stableAmount) internal {
+        if (_stableAddress == addressUSDT) {
+            affiliates[_affiliate].balanceProfitUSDT += _stableAmount;
+        } else if (_stableAddress == addressUSDC) {
+            affiliates[_affiliate].balanceProfitUSDC += _stableAmount;
+        } else if (_stableAddress == addressBUSD) {
+            affiliates[_affiliate].balanceProfitBUSD += _stableAmount;
+        }
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
@@ -410,16 +453,17 @@ contract VestingAffiliate is
             return 0;
         }
 
-        uint8 _level = affiliates[_referralAddress].level;
+        uint256 referralTotalInvestment = affiliates[_referralAddress].totalInvestment;
+        uint8 usageCounter = codeUsageCounter[_referralAddress][_msgSender()];
 
-        if (_level == 0) {
-            return 0;
-        } else if (_level == 1) {
-            return 3;
-        } else if (_level == 2) {
-            return 5;
-        } else {
+        if (referralTotalInvestment >= 150 ether && usageCounter == 2) {
             return 7;
+        } else if (referralTotalInvestment >= 75 ether && usageCounter == 1) {
+            return 5;
+        } else if (referralTotalInvestment >= 25 ether && usageCounter == 0) {
+            return 3;
+        } else {
+            return 0;
         }
     }
 
