@@ -305,7 +305,7 @@ contract VestingAffiliate is
     function withdrawProfits() external whenNotPaused {
         Affiliate storage affiliate = affiliates[_msgSender()];
         require(affiliate.hasReferralCode, "This address has not a referral code.");
-        require(affiliate.balanceProfitUSDT > 0 && affiliate.balanceProfitUSDC > 0 && affiliate.balanceProfitBUSD > 0, "Address without profit.");
+        require(affiliate.balanceProfitUSDT > 0 || affiliate.balanceProfitUSDC > 0 || affiliate.balanceProfitBUSD > 0, "Address without profit.");
 
         uint256 commissionPercentage = 1;
 
@@ -453,17 +453,30 @@ contract VestingAffiliate is
             return 0;
         }
 
-        uint256 referralTotalInvestment = affiliates[_referralAddress].totalInvestment;
         uint8 usageCounter = codeUsageCounter[_referralAddress][_msgSender()];
 
-        if (referralTotalInvestment >= 150 ether && usageCounter == 2) {
-            return 7;
-        } else if (referralTotalInvestment >= 75 ether && usageCounter == 1) {
-            return 5;
-        } else if (referralTotalInvestment >= 25 ether && usageCounter == 0) {
-            return 3;
+        if (affiliates[_referralAddress].isInfluencer) {
+            if (usageCounter == 2) {
+                return 7;
+            } else if (usageCounter == 1) {
+                return 5;
+            } else if (usageCounter == 0) {
+                return 3;
+            } else {
+                return 0;
+            }
         } else {
-            return 0;
+            uint256 referralTotalInvestment = affiliates[_referralAddress].totalInvestment;
+            
+            if (referralTotalInvestment >= 150 ether && usageCounter == 2) {
+                return 7;
+            } else if (referralTotalInvestment >= 75 ether && usageCounter == 1) {
+                return 5;
+            } else if (referralTotalInvestment >= 25 ether && usageCounter == 0) {
+                return 3;
+            } else {
+                return 0;
+            }
         }
     }
 
